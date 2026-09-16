@@ -57,6 +57,24 @@ def claim_for(p=None):
     return f'<p class="claim">{esc(c)}</p>' if c else ""
 
 
+def awards_for(p=None):
+    """수상·랭킹 슬롯.
+
+    products.json 의 awards 에 {"text": ..., "basis": ...} 목록이 있으면 렌더한다.
+    측정 기준(매체·카테고리·기간)을 basis 로 반드시 함께 내보낸다. 기준 없는 1위
+    표시는 객관적 근거 없는 최상급 표현이 된다.
+    """
+    aw = (p or {}).get("awards") or []
+    if not aw:
+        return ""
+    li = "".join(f"<li>{esc(a['text'])}</li>" for a in aw)
+    basis = " · ".join(a["basis"] for a in aw if a.get("basis"))
+    out = f'<ul class="awards">{li}</ul>'
+    if basis:
+        out += f'<p class="basis">{esc(basis)}</p>'
+    return out
+
+
 def note_for(p=None):
     ft = (p or {}).get("food_type")
     if ft:
@@ -67,6 +85,8 @@ CSS = """*{box-sizing:border-box}
 body{font:16px/1.7 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Segoe UI",sans-serif;
 margin:0;color:#15161A;background:#fff}
 .w{max-width:760px;margin:0 auto;padding:24px 20px 64px}
+.awards{margin:10px 0 4px;padding-left:20px;font-weight:600}
+.basis{margin:0 0 14px;font-size:12.5px;color:#93959D}
 a{color:#1A2B6B}
 h1{font-size:20px;margin:0 0 4px;line-height:1.35}
 .sub{color:#5F626C;font-size:14px;margin:0 0 24px}
@@ -175,6 +195,7 @@ def build_group(slug, name, rows, domain, out, prod=None):
                              "itemListElement": ld}, ensure_ascii=False) if ld else ""
         body = (
             f'<h1>{esc(name)} 구매 후기</h1>'
+            + awards_for(prod)
             + claim_for(prod)
             + f'<p class="sub">총 {len(rows):,}건 · {i}/{len(pages)}페이지 · '
               f'구매 고객이 직접 작성한 이용후기입니다.</p>'
