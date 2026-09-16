@@ -140,16 +140,18 @@ def build_group(slug, name, rows, domain, out):
         ld = [{"@type": "Review",
                "reviewRating": {"@type": "Rating", "ratingValue": r["ratings"]},
                "reviewBody": r["content"][:1500]} for r in chunk if r.get("ratings")]
+        # 평점이 있는 리뷰가 없으면 JSON-LD 를 아예 내보내지 않는다. 빈 ItemList 는
+        # 아무 정보도 주지 않는다. 이번 내보내기에 평점 컬럼이 빠져 대부분이 여기 해당한다.
         jsonld = json.dumps({"@context": "https://schema.org", "@type": "ItemList",
                              "name": f"{name} 구매 후기", "numberOfItems": len(ld),
-                             "itemListElement": ld}, ensure_ascii=False)
+                             "itemListElement": ld}, ensure_ascii=False) if ld else ""
         body = (f'<h1>{esc(name)} 구매 후기</h1>'
                 f'<p class="sub">총 {len(rows):,}건 · {i}/{len(pages)}페이지 · '
                 f'구매 고객이 직접 작성한 이용후기입니다.</p>'
                 f'<ul class="rvs">{"".join(review_li(r) for r in chunk)}</ul>'
                 f'<div class="nav">{"".join(nav)}</div>'
                 f'<p class="note">{NOTE}</p>'
-                f'<script type="application/ld+json">{jsonld}</script>')
+                + (f'<script type="application/ld+json">{jsonld}</script>' if jsonld else ''))
         open(os.path.join(out, fn), "w", encoding="utf-8").write(shell(
             f"{name} 구매 후기 {i}/{len(pages)}페이지",
             f"{name} 구매 고객이 직접 작성한 이용후기 {len(rows):,}건 중 {i}페이지.",
@@ -184,7 +186,7 @@ def build(domain, out):
         rows = groups.get(p["slug"])
         if not rows:
             continue
-        rows.sort(key=lambda r: int(r["id"]))
+        rows.sort(key=lambda r: r.get("seq") or 0)   # 스토어 진입 순서 = 페이지 경계 고정
         urls, npages = build_group(p["slug"], p["name"], rows, domain, out)
         all_urls += urls
         hub.append((p, len(rows), npages))

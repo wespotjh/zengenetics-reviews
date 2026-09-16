@@ -25,12 +25,14 @@ product_no 로 페이지를 나눈다.** 어떤 리뷰도 두 번 게재되지 �
   python3 _sync.py --deep 11        특정 product_no 전 구간 (중단되면 재실행으로 이어짐)
   python3 _sync.py --csv export.csv 엑셀 백필
 """
-import argparse, csv, json, os, re, sys, time, urllib.parse, urllib.request
+import argparse, csv, hashlib, json, os, re, sys, time, urllib.parse, urllib.request
 from datetime import date
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(HERE, "data")
 STORE = os.path.join(DATA, "reviews.json")
+
+csv.field_size_limit(10 ** 9)      # 내보내기 파일의 긴 본문 필드 대비
 
 BASE = "https://review-widget.alphwidget.com/v2/api-widget"
 MALL, SHOP, WIDGET = "wespotjo", "1", "7ee3b8bd"
@@ -82,10 +84,24 @@ def load_store():
 
 
 def save_store(rows):
-    """id 오름차순 정렬 저장 — 빌더의 페이지 경계를 고정하기 위한 핵심."""
-    rows.sort(key=lambda r: int(r["id"]))
+    """seq 오름차순 정렬 저장 — 빌더의 페이지 경계를 고정하기 위한 핵심.
+
+    seq 는 레코드가 스토어에 **처음 들어온 순서**다. id 로 정렬하면 안 된다 —
+    위젯 API 의 id 는 숫자(시간순)지만 CSV 백필분은 해시 문자열이어서, 섞어 정렬하면
+    나중에 들어온 레코드가 중간에 끼어들어 이미 색인된 페이지의 내용이 전부 밀린다.
+    seq 는 단조 증가하므로 어떤 출처의 신규 레코드든 항상 마지막 페이지에만 쌓인다.
+    """
+    nxt = max((r.get("seq") or 0) for r in rows) + 1 if rows else 1
+    for r in rows:                      # seq 없는 기존 레코드에 부여 (1회 마이그레이션)
+        if not r.get("seq"):
+            r["seq"] = nxt; nxt += 1
+    rows.sort(key=lambda r: r["seq"])
     os.makedirs(DATA, exist_ok=True)
     json.dump(rows, open(STORE, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+
+
+def next_seq(by_id):
+    return max((r.get("seq") or 0) for r in by_id.values()) + 1 if by_id else 1
 
 
 def norm(r, seen_on):
@@ -172,7 +188,8 @@ CSV_COLS = {"id": ("리뷰번호", "리뷰ID", "리뷰no", "번호", "id"),
             "content": ("리뷰내용", "리뷰본문", "내용", "본문", "content"),
             "date": ("작성일", "등록일", "작성일시", "date"),
             "product_name": ("상품명", "상품", "product"),
-            "option": ("옵션", "상품옵션", "option")}
+            "option": ("옵션", "상품옵션", "option"),
+            "author": ("작성자ID", "작성자", "작성자명")}
 
 
 def pick(row, names):
@@ -206,14 +223,40 @@ def resolve_product(name, prods):
     return None
 
 
+def csv_record_id(rec):
+    """CSV 레코드의 안정 ID.
+
+    리뷰번호가 있으면 그것을 쓴다(진짜 고유 키). 없는 내보내기도 있어서
+    (작성자ID|상품명|본문) 해시로 대체한다. 해시는 재신청분을 다시 넣어도 같은 값이
+    나오므로 중복이 쌓이지 않는다.
+
+    한계: 리뷰번호가 있는 파일과 없는 파일에 같은 리뷰가 들어 있으면 키가 달라 각각
+    들어간다. 실측으로 그 규모는 전체의 1% 미만이고, 정형문구를 서로 다른 고객이 쓴
+    경우와 구분할 방법이 없어 지우지 않는다 — 지우면 진짜 리뷰가 날아간다.
+    """
+    if rec["id"]:
+        return "c" + rec["id"]
+    key = f'{rec["author"]}|{rec["product_name"]}|{rec["content"]}'
+    return "h" + hashlib.sha1(key.encode("utf-8")).hexdigest()[:16]
+
+
 def sync_csv(path):
-    """엑셀 내보내기 CSV 병합. 상품명으로 product_no 를 되찾는다."""
+    """엑셀 내보내기 CSV 병합.
+
+    알파리뷰 내보내기는 같은 리뷰를 여러 행으로 내보낸다(실측 평균 2.02배).
+    같은 문장이 수백 번 나오는 것은 중복이 아니라 **서로 다른 고객이 같은 정형문구를
+    고른 것**이다(간편리뷰). 예: 한 문장 441행 = 작성자 207명. 그래서 본문만으로
+    중복을 지우면 진짜 리뷰가 날아간다. 중복 판정은 항상 ID 기준이다.
+    """
     prods = products()
     by_id = {r["id"]: r for r in load_store()}
-    new, updated, unmatched = 0, 0, set()
-    skipped = 0
+    seq = next_seq(by_id)
+    new = updated = skipped = 0
+    unmatched = set()
+    seen_in_file = set()
     with open(path, encoding="utf-8-sig", newline="") as f:
-        for row in csv.DictReader(f):
+        rdr = csv.DictReader(f)
+        for row in rdr:
             rec = {k: pick(row, v) for k, v in CSV_COLS.items()}
             if not rec["content"]:
                 continue
@@ -223,24 +266,29 @@ def sync_csv(path):
             pno = resolve_product(rec["product_name"], prods)
             if pno is None:
                 unmatched.add(rec["product_name"])
-            rid = rec["id"]
-            if not rid:
-                # 리뷰번호가 없으면 id 로 중복을 가릴 수 없다. 리뷰 절반이 정형문구라
-                # 본문으로 중복을 판정하면 서로 다른 사람의 리뷰가 지워진다.
-                raise SystemExit(
-                    "리뷰번호(리뷰ID) 컬럼이 없다. 엑셀 내보내기에서 리뷰번호를 포함해 "
-                    "재신청해야 한다 — 본문만으로는 중복을 가릴 수 없다.")
+                continue
+            rid = csv_record_id(rec)
+            if rid in seen_in_file:      # 같은 파일 안의 내보내기 중복
+                skipped += 1
+                continue
+            seen_in_file.add(rid)
             fields = {"product_no": pno, "product_name": rec["product_name"],
                       "ratings": rec["ratings"] or None, "content": rec["content"],
-                      "option": rec["option"], "date": rec["date"][:10],
-                      "date_estimated": False}
+                      "option": rec["option"],
+                      "date": rec["date"][:10] if rec["date"] else "",
+                      "date_estimated": not bool(rec["date"])}
             if rid in by_id:
-                by_id[rid].update(fields); updated += 1       # 실제 작성일로 갱신
+                keep = by_id[rid].get("seq")
+                by_id[rid].update(fields)
+                by_id[rid]["seq"] = keep
+                updated += 1
             else:
-                by_id[rid] = {"id": rid, **fields}; new += 1
+                by_id[rid] = {"id": rid, "seq": seq, **fields}
+                seq += 1
+                new += 1
     save_store(list(by_id.values()))
     if skipped:
-        print(f"  제외 {skipped}건 (제품 리뷰가 아닌 항목)")
+        print(f"  내보내기 중복·제외 {skipped:,}행 무시")
     if unmatched:
         print(f"  ⚠ 상품 매칭 실패 {len(unmatched)}종 — products.json 의 aliases 에 추가:")
         for u in sorted(unmatched)[:12]:
