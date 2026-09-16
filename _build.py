@@ -42,6 +42,21 @@ NOTE_BASE = ("본 페이지는 구매 고객이 작성한 이용후기를 작성
              "목적으로 하지 않습니다.")
 
 
+def claim_for(p=None):
+    """기능성 문구 슬롯.
+
+    products.json 의 functional_claim 에 값이 있으면 리뷰 페이지 상단에 렌더한다.
+    비어 있으면 아무것도 나가지 않는다.
+
+    **이 값은 식약처 인정(개별인정형) 또는 기능성 표시 식품 요건을 충족한 뒤에만 채운다.**
+    칼륨 제품의 현재 식품유형은 당류가공품(일반식품)이고, 일반식품에 기능성·효능을
+    표시하면 식품표시광고법 위반이다. 임상 결과만으로는 표시 권한이 생기지 않는다.
+    인정 문구를 받으면 이 필드에 한 줄 넣으면 전 페이지에 반영된다 — 재작업 없다.
+    """
+    c = (p or {}).get("functional_claim")
+    return f'<p class="claim">{esc(c)}</p>' if c else ""
+
+
 def note_for(p=None):
     ft = (p or {}).get("food_type")
     if ft:
@@ -67,6 +82,7 @@ ul.rvs{list-style:none;padding:0;margin:0}
 .hub .n{color:#93959D;font-size:13px}
 .hub .pages{margin-top:6px;display:flex;flex-wrap:wrap;gap:8px}
 .hub .pages a{font-size:13px}
+.claim{margin:0 0 14px;padding:10px 14px;border-left:3px solid #1A2B6B;background:#F4F6FC;font-size:14.5px}
 .note{margin-top:40px;padding-top:16px;border-top:1px solid #E9E8E4;font-size:12.5px;color:#93959D}
 @media (prefers-color-scheme:dark){
 :root:not([data-theme="light"]) body{background:#141413;color:#EDEDEB}
@@ -157,13 +173,16 @@ def build_group(slug, name, rows, domain, out, prod=None):
         jsonld = json.dumps({"@context": "https://schema.org", "@type": "ItemList",
                              "name": f"{name} 구매 후기", "numberOfItems": len(ld),
                              "itemListElement": ld}, ensure_ascii=False) if ld else ""
-        body = (f'<h1>{esc(name)} 구매 후기</h1>'
-                f'<p class="sub">총 {len(rows):,}건 · {i}/{len(pages)}페이지 · '
-                f'구매 고객이 직접 작성한 이용후기입니다.</p>'
-                f'<ul class="rvs">{"".join(review_li(r) for r in chunk)}</ul>'
-                f'<div class="nav">{"".join(nav)}</div>'
-                f'<p class="note">{note_for(prod)}</p>'
-                + (f'<script type="application/ld+json">{jsonld}</script>' if jsonld else ''))
+        body = (
+            f'<h1>{esc(name)} 구매 후기</h1>'
+            + claim_for(prod)
+            + f'<p class="sub">총 {len(rows):,}건 · {i}/{len(pages)}페이지 · '
+              f'구매 고객이 직접 작성한 이용후기입니다.</p>'
+            + f'<ul class="rvs">{"".join(review_li(r) for r in chunk)}</ul>'
+            + f'<div class="nav">{"".join(nav)}</div>'
+            + f'<p class="note">{note_for(prod)}</p>'
+            + (f'<script type="application/ld+json">{jsonld}</script>' if jsonld else "")
+        )
         open(os.path.join(out, fn), "w", encoding="utf-8").write(shell(
             f"{name} 구매 후기 {i}/{len(pages)}페이지",
             f"{name} 구매 고객이 직접 작성한 이용후기 {len(rows):,}건 중 {i}페이지.",

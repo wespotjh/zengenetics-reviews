@@ -7,7 +7,8 @@
       "젠제네틱스 포타슘 칼륨 (20ea)"
     ],
     "food_type": "당류가공품",
-    "note": "식품유형 당류가공품 · 품목보고번호 20240365166-114 (상세페이지 제품정보 이미지 실측)"
+    "note": "식품유형 당류가공품 · 품목보고번호 20240365166-114 (상세페이지 제품정보 이미지 실측)",
+    "functional_claim": ""
   },
   {
     "product_no": 13,
@@ -16,7 +17,8 @@
     "aliases": [
       "젠제네틱스 비타민B컴플렉스 (20ea)",
       "[비타민B컴플렉스] 생애 첫 구매 EVENT"
-    ]
+    ],
+    "functional_claim": ""
   },
   {
     "product_no": 16,
@@ -25,7 +27,8 @@
     "aliases": [
       "젠제네틱스 마그네슘 (20ea)",
       "[마그네슘] 생애 첫 구매 EVENT"
-    ]
+    ],
+    "functional_claim": ""
   },
   {
     "product_no": 60,
@@ -34,7 +37,8 @@
     "aliases": [
       "젠제네틱스 포타슘 칼륨 데이팩(6ea)",
       "젠제네틱스 포타슘 칼륨 데이팩 (6ea)"
-    ]
+    ],
+    "functional_claim": ""
   },
   {
     "product_no": 61,
@@ -43,7 +47,8 @@
     "aliases": [
       "젠제네틱스 마그네슘 데이팩(6ea)",
       "젠제네틱스 마그네슘 데이팩 (6ea)"
-    ]
+    ],
+    "functional_claim": ""
   },
   {
     "product_no": 62,
@@ -52,7 +57,8 @@
     "aliases": [
       "젠제네틱스 비타민B컴플렉스 데이팩(6ea)",
       "젠제네틱스 비타민B컴플렉스 데이팩 (6ea)"
-    ]
+    ],
+    "functional_claim": ""
   },
   {
     "product_no": 63,
@@ -60,7 +66,8 @@
     "name": "붓기 부스터 칼륨(2box) & 비타민B컴플렉스(1box) SET",
     "aliases": [
       "[설인아 PICK] 붓기 부스터 젠제네틱스 칼륨(2box) & 비타민B컴플렉스(1box) SET"
-    ]
+    ],
+    "functional_claim": ""
   },
   {
     "product_no": 64,
@@ -68,7 +75,8 @@
     "name": "퍼포먼스 부스터 마그네슘(1box) & 비타민B컴플렉스(1box) SET",
     "aliases": [
       "[퍼포먼스 부스터] 젠제네틱스 마그네슘(1box) & 비타민B컴플렉스(1box) SET"
-    ]
+    ],
+    "functional_claim": ""
   },
   {
     "product_no": 71,
@@ -76,7 +84,8 @@
     "name": "칼륨/마그네슘/비타민B컴플렉스 생애 첫 구매 EVENT",
     "aliases": [
       "[젠제네틱스] 칼륨/마그네슘/비타민B컴플렉스 생애 첫 구매 EVENT"
-    ]
+    ],
+    "functional_claim": ""
   },
   {
     "product_no": 98,
@@ -84,7 +93,8 @@
     "name": "칼마비 건강루틴 칼륨·마그네슘·비타민B컴플렉스 SET",
     "aliases": [
       "[칼마비 건강루틴] 젠제네틱스 칼륨 + 마그네슘 + 비타민B컴플렉스 SET"
-    ]
+    ],
+    "functional_claim": ""
   },
   {
     "product_no": -1,
@@ -102,6 +112,7 @@
       "[추석 70%할인] 젠제네틱스 한가위 특별 감사제",
       "[x2더블이벤트] 붓기 부스터 젠제네틱스 칼륨(2box) & 비타민B컴플렉스(1box) 2SET",
       "[붓기 부스터 데이팩] 젠제네틱스 칼륨 6ea(2box) + 젠제네틱스 비타민B컴플렉스 6ea(1box)"
-    ]
+    ],
+    "functional_claim": ""
   }
 ]
