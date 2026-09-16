@@ -137,6 +137,9 @@ def _walk(product_no, pages, by_id, today, delay, early_stop, save_every=0):
             break
         if not rows:
             break
+        if not isinstance(rows, list):        # 에러 응답({"code":...}) 방어
+            print(f"    page {page} 예상 밖 응답: {str(rows)[:80]}", file=sys.stderr)
+            break
         fresh = 0
         for r in rows:
             rid = str(r.get("id"))
@@ -162,6 +165,10 @@ def sync_api(delay=0.35):
     by_id = {r["id"]: r for r in load_store()}
     today, total_new = date.today().isoformat(), 0
     for p in products():
+        # product_no <= 0 은 실제 상품이 아니다. promo(기획전) 처럼 CSV 분류용으로만
+        # 쓰는 가상 그룹이므로 API 에 조회하면 VALIDATION_ERROR 가 돌아온다.
+        if p["product_no"] <= 0:
+            continue
         n = _walk(p["product_no"], min(PAGE_CLAMP, MAX_PAGES_INCREMENTAL),
                   by_id, today, delay, early_stop=True)
         total_new += n
