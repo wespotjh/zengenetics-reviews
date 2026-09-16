@@ -32,9 +32,21 @@ RISK = {"체중·다이어트": r"체중|몸무게|다이어트|감량|\d+\s*(kg
         "질병·치료":     r"치료|완치|질병|병원|약\s*대신|처방",
         "의학적 단정":   r"효과\s*보장|100%|무조건|반드시\s*낫"}
 
-NOTE = ("본 페이지는 구매 고객이 작성한 이용후기를 작성 순서대로 그대로 게시한 것이며, "
-        "판매자가 선별하거나 편집하지 않았습니다. 개인의 후기는 섭취에 따른 효과를 "
-        "보증하지 않습니다. 건강기능식품은 질병의 예방·치료를 위한 의약품이 아닙니다.")
+# 모든 상품에 항상 참인 문장만 둔다. 식품유형은 상품마다 다르므로 단정하지 않는다.
+# 칼륨은 실측 결과 **당류가공품(일반식품)** 이다 — 건강기능식품이 아니다. 그런데도
+# "건강기능식품은 …" 이라고 써 두면 제품 분류를 잘못 알리는 표시가 된다.
+# products.json 의 food_type 이 있는 상품만 그 유형을 덧붙인다.
+NOTE_BASE = ("본 페이지는 구매 고객이 작성한 이용후기를 작성 순서대로 그대로 게시한 "
+             "것이며, 판매자가 선별하거나 편집하지 않았습니다. 개인의 후기이며 제품의 "
+             "효과를 보증하지 않습니다. 본 제품은 의약품이 아니며 질병의 예방·치료를 "
+             "목적으로 하지 않습니다.")
+
+
+def note_for(p=None):
+    ft = (p or {}).get("food_type")
+    if ft:
+        return NOTE_BASE + f" 본 제품의 식품유형은 {ft}이며, 건강기능식품이 아닙니다."
+    return NOTE_BASE
 
 CSS = """*{box-sizing:border-box}
 body{font:16px/1.7 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Segoe UI",sans-serif;
@@ -125,7 +137,7 @@ def review_li(r):
             f'<div class="rv-b" itemprop="reviewBody">{body}</div>{opt}</li>')
 
 
-def build_group(slug, name, rows, domain, out):
+def build_group(slug, name, rows, domain, out, prod=None):
     pages = [rows[i:i + PER_PAGE] for i in range(0, len(rows), PER_PAGE)] or [[]]
     urls = []
     for i, chunk in enumerate(pages, 1):
@@ -150,7 +162,7 @@ def build_group(slug, name, rows, domain, out):
                 f'구매 고객이 직접 작성한 이용후기입니다.</p>'
                 f'<ul class="rvs">{"".join(review_li(r) for r in chunk)}</ul>'
                 f'<div class="nav">{"".join(nav)}</div>'
-                f'<p class="note">{NOTE}</p>'
+                f'<p class="note">{note_for(prod)}</p>'
                 + (f'<script type="application/ld+json">{jsonld}</script>' if jsonld else ''))
         open(os.path.join(out, fn), "w", encoding="utf-8").write(shell(
             f"{name} 구매 후기 {i}/{len(pages)}페이지",
@@ -187,7 +199,7 @@ def build(domain, out):
         if not rows:
             continue
         rows.sort(key=lambda r: r.get("seq") or 0)   # 스토어 진입 순서 = 페이지 경계 고정
-        urls, npages = build_group(p["slug"], p["name"], rows, domain, out)
+        urls, npages = build_group(p["slug"], p["name"], rows, domain, out, p)
         all_urls += urls
         hub.append((p, len(rows), npages))
         for r in rows:
@@ -211,7 +223,7 @@ def build(domain, out):
         f'<h1>젠제네틱스 구매 후기</h1>'
         f'<p class="sub">총 {total:,}건 · 구매 고객이 직접 작성한 이용후기입니다. '
         f'각 줄의 첫 번호가 최신 페이지입니다.</p>'
-        f'<ul class="hub">{items}</ul><p class="note">{NOTE}</p>'))
+        f'<ul class="hub">{items}</ul><p class="note">{NOTE_BASE}</p>'))
 
     open(os.path.join(out, "sitemap.xml"), "w", encoding="utf-8").write(
         '<?xml version="1.0" encoding="UTF-8"?>\n'
