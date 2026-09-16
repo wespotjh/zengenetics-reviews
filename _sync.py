@@ -1,35 +1,66 @@
 #!/usr/bin/env python3
 """
-리뷰 스토어 증분 동기화.
+리뷰 스토어 동기화 — 단일 스토어(data/reviews.json), id 로 중복 제거.
 
-두 가지 입력을 같은 스토어(data/<slug>.json)에 병합한다.
+**왜 단일 스토어인가**
 
-  1) 알파리뷰 위젯 API  — 신규 리뷰. 항상 1페이지에 들어오므로 아는 id 를
-     만나면 멈춘다. 매일 돌려도 요청 몇 건이면 끝난다.
-  2) 알파리뷰 엑셀 내보내기 CSV — 과거 이력 백필(1회). 위젯 API 는 page 500
-     에서 클램프되어 상품당 약 1,497건만 꺼낼 수 있어 전량은 이 경로로만 온다.
+알파리뷰는 리뷰를 상품별로 분리해 주지 않는다. 성분이 같은 상품군이 같은 리뷰 풀을
+공유한다(실측: `magnesium` = `daypack-magnesium` = `set-performance` 가 표본 60건
+전수 일치, 보유 건수도 모두 18,799. `set-swell` 33,631 ≈ 칼륨 26,970 + 비타민B 6,484).
 
-스토어는 id 오름차순(과거→최신)으로 정렬해 저장한다. 빌더가 이 순서로 페이지를
-끊기 때문에 기존 페이지 URL 과 내용이 흔들리지 않는다.
+그래서 `product_no=64` 로 조회해도 실제로는 `product_no=16` 리뷰가 섞여 나온다.
+조회에 쓴 product_no 로 페이지를 나누면 마그네슘 리뷰가 '퍼포먼스 세트' 후기로도
+게재되어 **중복 콘텐츠이고 사실과도 다르다.**
+
+다행히 API 는 리뷰마다 진짜 소속 상품을 알려준다(`product.product_no` / `product_name`).
+그래서 전 상품을 한 스토어에 모아 id 로 중복을 제거하고, **빌더가 리뷰 자신의
+product_no 로 페이지를 나눈다.** 어떤 리뷰도 두 번 게재되지 않는다.
+
+입력 두 가지:
+  1) 위젯 API   — 신규 리뷰. `--api` 는 페이지 예산 안에서만 걷는다
+  2) 엑셀 CSV   — 과거 이력 백필(1회). API 는 상품당 약 1,497건에서 막힌다
 
 사용:
-  python3 _sync.py --api potassium              신규만 (매일)
-  python3 _sync.py --api all                    전 상품 신규
-  python3 _sync.py --csv export.csv             백필 병합
+  python3 _sync.py --api            신규만 (매일 · 워크플로가 이걸 돈다)
+  python3 _sync.py --deep 11        특정 product_no 전 구간 (중단되면 재실행으로 이어짐)
+  python3 _sync.py --csv export.csv 엑셀 백필
 """
 import argparse, csv, json, os, re, sys, time, urllib.parse, urllib.request
 from datetime import date
 
-HERE  = os.path.dirname(os.path.abspath(__file__))
-DATA  = os.path.join(HERE, "data")
-BASE  = "https://review-widget.alphwidget.com/v2/api-widget"
+HERE = os.path.dirname(os.path.abspath(__file__))
+DATA = os.path.join(HERE, "data")
+STORE = os.path.join(DATA, "reviews.json")
+
+BASE = "https://review-widget.alphwidget.com/v2/api-widget"
 MALL, SHOP, WIDGET = "wespotjo", "1", "7ee3b8bd"
 HDRS = {"Referer": "https://zengenetics.co.kr/", "Origin": "https://zengenetics.co.kr",
         "Accept": "application/json", "User-Agent": "zengenetics-review-sync/1.0"}
-PAGE_CLAMP = 499          # 500 이후는 같은 3건이 반복된다 (이진탐색 확인)
+
+PAGE_CLAMP = 499          # page 500 이후는 같은 3건이 반복된다 (이진탐색 확인)
+MISS_TOLERANCE = 3        # 아래 '고정 노출 리뷰' 주석 참고
+MAX_PAGES_INCREMENTAL = 20
+
+# 위젯의 기본 정렬은 순수 최신순이 아니다. 앞머리에 **고정 노출 리뷰 4건**이 붙고
+# (page 1 전체 + page 2 첫 항목) 그 뒤부터 id 내림차순(최신순)이 시작된다.
+#   page 1 → 78633090, 75141298, 74012666
+#   page 2 → 68037045, 99940570, 99919641   ← 여기서 최신순이 시작
+# 그래서 "아는 id 를 만나면 중단"은 틀렸다. 고정 리뷰만 있는 page 1 에서 멈춰 신규를
+# 영구히 놓친다. 신규 없는 페이지가 MISS_TOLERANCE 번 연속일 때만 멈춘다.
+#
+# 증분 모드에 페이지 예산을 두는 이유: 스토어가 비어 있으면 아는 id 가 없어
+# MISS_TOLERANCE 에 영원히 도달하지 않고 PAGE_CLAMP 까지 걷는다. 상품 10종이면 매일
+# 5,000 요청이 되어 벤더 API 를 과하게 두드린다. 과거 이력은 --deep / --csv 의 일이다.
+
+# 이관된 네이버페이 구매평은 본문 끝에 실제 작성일이 박혀 있다.
+#   "잘받았습니다.좋아요.,(2025-09-19 17:40:31 에 등록된 네이버 페이 구매평)"
+# API 응답에 작성일 필드가 없으므로 이게 유일한 실제 날짜 출처다 (약 13%).
+EMBEDDED_DATE = re.compile(r"\((\d{4}-\d{2}-\d{2})[^)]*에 등록된[^)]*\)")
+
 
 def products():
     return json.load(open(os.path.join(DATA, "products.json"), encoding="utf-8"))
+
 
 def api(path="", tries=4, **q):
     """연결 리셋이 흔하다 — 지수 백오프로 재시도한다."""
@@ -45,101 +76,101 @@ def api(path="", tries=4, **q):
                 raise
             time.sleep(2 ** n)
 
-def store_path(slug): return os.path.join(DATA, f"{slug}.json")
 
-def load_store(slug):
-    p = store_path(slug)
-    return json.load(open(p, encoding="utf-8")) if os.path.exists(p) else []
+def load_store():
+    return json.load(open(STORE, encoding="utf-8")) if os.path.exists(STORE) else []
 
-def save_store(slug, rows):
-    """id 오름차순으로 정렬 저장 — 페이지 경계를 고정하기 위한 핵심."""
+
+def save_store(rows):
+    """id 오름차순 정렬 저장 — 빌더의 페이지 경계를 고정하기 위한 핵심."""
     rows.sort(key=lambda r: int(r["id"]))
-    json.dump(rows, open(store_path(slug), "w", encoding="utf-8"),
-              ensure_ascii=False, indent=1)
+    os.makedirs(DATA, exist_ok=True)
+    json.dump(rows, open(STORE, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 
-# 이관된 네이버페이 구매평은 본문 끝에 실제 작성일이 박혀 있다.
-#   "잘받았습니다.좋아요.,(2025-09-19 17:40:31 에 등록된 네이버 페이 구매평)"
-# 위젯 API 응답에는 작성일 필드가 없으므로 이게 유일한 실제 날짜 출처다 (약 13%).
-EMBEDDED_DATE = re.compile(r"\((\d{4}-\d{2}-\d{2})[^)]*에 등록된[^)]*\)")
 
 def norm(r, seen_on):
     """위젯 API 응답 → 스토어 레코드.
 
-    API 에 작성일 필드가 없다. 본문에서 실제 작성일을 건질 수 있으면 그것을 쓰고,
-    못 건지면 수집일을 넣되 date_estimated=True 로 표시한다. 빌더는 추정 날짜를
-    **화면에 표시하지 않는다** — 오래된 후기에 수집일을 붙이면 날짜를 조작한 것처럼
-    보이기 때문이다."""
+    product_no 는 **리뷰 자신의 소속 상품**이다. 조회에 쓴 product_no 가 아니다.
+    작성일은 본문에서 건질 수 있으면 그것을 쓰고, 못 건지면 수집일을 넣되
+    date_estimated=True 로 표시한다. 빌더는 추정 날짜를 화면에 내보내지 않는다 —
+    오래된 후기에 수집일을 붙이면 날짜를 조작한 것처럼 보이기 때문이다.
+    """
     content = (r.get("content") or "").strip()
+    prod = r.get("product") or {}
     m = EMBEDDED_DATE.search(content)
-    return {"id": str(r.get("id")), "ratings": r.get("ratings"),
-            "content": content, "option": r.get("product_option") or "",
+    return {"id": str(r.get("id")),
+            "product_no": prod.get("product_no"),
+            "product_name": prod.get("product_name") or "",
+            "ratings": r.get("ratings"), "content": content,
+            "option": r.get("product_option") or "",
             "date": m.group(1) if m else seen_on,
             "date_estimated": not m}
 
-# 위젯의 기본 정렬은 순수 최신순이 아니다. 앞머리에 **고정 노출 리뷰 4건**이
-# 붙고(page 1 전체 + page 2 첫 항목), 그 뒤부터 id 내림차순(최신순)이 시작된다.
-#   page 1 → 78633090, 75141298, 74012666
-#   page 2 → 68037045, 99940570, 99919641   ← 여기서 최신순이 시작
-# 따라서 "아는 id 를 만나면 중단"은 틀렸다. 고정 리뷰만 있는 page 1 에서 멈춰
-# 신규를 영구히 놓친다. 신규가 없는 페이지가 MISS_TOLERANCE 번 연속 나올 때만 멈춘다.
-MISS_TOLERANCE = 3
 
-def sync_api(slug, product_no, delay=0.35):
-    cur = load_store(slug)
-    have = {r["id"] for r in cur}
-    today, added, misses, page = date.today().isoformat(), [], 0, 1
-    while page <= PAGE_CLAMP and misses < MISS_TOLERANCE:
+def _walk(product_no, pages, by_id, today, delay, early_stop, save_every=0):
+    """공통 순회. 새로 담은 레코드 수를 돌려준다."""
+    before, misses = len(by_id), 0
+    for page in range(1, pages + 1):
+        if early_stop and misses >= MISS_TOLERANCE:
+            break
         try:
             rows = api(product_no=product_no, page=page, page_size=3)
         except Exception as e:
-            print(f"  {slug} page {page} 실패: {e}", file=sys.stderr); break
-        if not rows: break
-        fresh = [r for r in rows if str(r.get("id")) not in have]
-        if fresh:
-            added += [norm(r, today) for r in fresh]
-            have.update(str(r.get("id")) for r in fresh)
-            misses = 0
-        else:
-            misses += 1                   # 고정 리뷰 구간을 지나가기 위한 유예
-        page += 1
-        time.sleep(delay)
-    if added:
-        save_store(slug, cur + added)
-    return len(added), api("/meta", product_no=product_no, page=1,
-                           page_size=3).get("total_count", 0)
-
-def backfill_api(slug, product_no, delay=0.5, save_every=25):
-    """위젯 API 가 허용하는 전 구간(page 1~499)을 걷는다. 조기 종료하지 않으므로
-    연결이 끊겨도 다시 돌리면 빠진 구간을 채운다. 주기적으로 저장해 진행분을 잃지 않는다."""
-    cur = load_store(slug)
-    by_id = {r["id"]: r for r in cur}
-    today, before = date.today().isoformat(), len(by_id)
-    for page in range(1, PAGE_CLAMP + 1):
-        try:
-            rows = api(product_no=product_no, page=page, page_size=3)
-        except Exception as e:
-            print(f"  {slug} page {page} 포기: {e}", file=sys.stderr)
+            print(f"    page {page} 포기: {e}", file=sys.stderr)
             break
         if not rows:
             break
+        fresh = 0
         for r in rows:
             rid = str(r.get("id"))
-            if rid not in by_id:
+            if rid in by_id:
+                # 이미 아는 리뷰라도 상품 정보가 비어 있으면 채운다
+                prod = r.get("product") or {}
+                if not by_id[rid].get("product_no") and prod.get("product_no"):
+                    by_id[rid]["product_no"] = prod["product_no"]
+                    by_id[rid]["product_name"] = prod.get("product_name") or ""
+            else:
                 by_id[rid] = norm(r, today)
-        if page % save_every == 0:
-            save_store(slug, list(by_id.values()))
-            print(f"    page {page}/{PAGE_CLAMP} · 누적 {len(by_id):,}건", flush=True)
+                fresh += 1
+        misses = 0 if fresh else misses + 1
+        if save_every and page % save_every == 0:
+            save_store(list(by_id.values()))
+            print(f"    page {page}/{pages} · 스토어 {len(by_id):,}건", flush=True)
         time.sleep(delay)
-    save_store(slug, list(by_id.values()))
     return len(by_id) - before
+
+
+def sync_api(delay=0.35):
+    """전 상품을 훑어 신규만 담는다. 페이지 예산 안에서만 걷는다."""
+    by_id = {r["id"]: r for r in load_store()}
+    today, total_new = date.today().isoformat(), 0
+    for p in products():
+        n = _walk(p["product_no"], min(PAGE_CLAMP, MAX_PAGES_INCREMENTAL),
+                  by_id, today, delay, early_stop=True)
+        total_new += n
+        print(f"  조회 {p['product_no']:>3} ({p['slug']}): 신규 {n}건")
+    save_store(list(by_id.values()))
+    return total_new, len(by_id)
+
+
+def backfill_api(product_no, delay=0.5):
+    """위젯 API 가 허용하는 전 구간(page 1~499)을 걷는다. 조기 종료하지 않으므로
+    연결이 끊겨도 다시 돌리면 빠진 구간을 채운다."""
+    by_id = {r["id"]: r for r in load_store()}
+    n = _walk(product_no, PAGE_CLAMP, by_id, date.today().isoformat(),
+              delay, early_stop=False, save_every=25)
+    save_store(list(by_id.values()))
+    return n, len(by_id)
 
 
 CSV_COLS = {"id": ("리뷰번호", "리뷰ID", "번호", "id"),
             "ratings": ("평점", "별점", "만족도", "rating"),
             "content": ("리뷰내용", "리뷰본문", "내용", "본문", "content"),
             "date": ("작성일", "등록일", "작성일시", "date"),
-            "product": ("상품명", "상품", "product"),
+            "product_name": ("상품명", "상품", "product"),
             "option": ("옵션", "상품옵션", "option")}
+
 
 def pick(row, names):
     for n in names:
@@ -148,70 +179,62 @@ def pick(row, names):
                 return (row[k] or "").strip()
     return ""
 
+
 def sync_csv(path):
-    """엑셀 내보내기 CSV 를 상품명으로 갈라 각 스토어에 병합."""
-    by_name = {p["name"]: p for p in products()}
-    buckets, unmatched = {}, set()
+    """엑셀 내보내기 CSV 병합. 상품명으로 product_no 를 되찾는다."""
+    by_name = {p["name"]: p["product_no"] for p in products()}
+    by_id = {r["id"]: r for r in load_store()}
+    new, updated, unmatched = 0, 0, set()
     with open(path, encoding="utf-8-sig", newline="") as f:
         for row in csv.DictReader(f):
             rec = {k: pick(row, v) for k, v in CSV_COLS.items()}
             if not rec["content"]:
                 continue
-            prod = next((p for n, p in by_name.items() if n and n in rec["product"]), None)
-            if not prod:
-                unmatched.add(rec["product"]); continue
-            buckets.setdefault(prod["slug"], []).append(
-                {"id": rec["id"], "ratings": rec["ratings"] or None,
-                 "content": rec["content"], "option": rec["option"],
-                 "date": rec["date"][:10], "date_estimated": False})
-    total = 0
-    for slug, rows in buckets.items():
-        cur = load_store(slug)
-        have = {r["id"] for r in cur}
-        # 내보내기 레코드가 우선 — 실제 작성일을 갖고 있다
-        by_id = {r["id"]: r for r in cur}
-        new = 0
-        for r in rows:
-            if r["id"] in have:
-                by_id[r["id"]].update({"date": r["date"], "date_estimated": False,
-                                       "content": r["content"]})
+            pno = next((no for n, no in by_name.items()
+                        if n and n in rec["product_name"]), None)
+            if pno is None:
+                unmatched.add(rec["product_name"])
+            rid = rec["id"]
+            fields = {"product_no": pno, "product_name": rec["product_name"],
+                      "ratings": rec["ratings"] or None, "content": rec["content"],
+                      "option": rec["option"], "date": rec["date"][:10],
+                      "date_estimated": False}
+            if rid in by_id:
+                by_id[rid].update(fields); updated += 1       # 실제 작성일로 갱신
             else:
-                by_id[r["id"]] = r; new += 1
-        save_store(slug, list(by_id.values()))
-        print(f"  {slug}: 신규 {new}건 / 스토어 {len(by_id)}건")
-        total += new
+                by_id[rid] = {"id": rid, **fields}; new += 1
+    save_store(list(by_id.values()))
     if unmatched:
         print(f"  ⚠ 상품 매칭 실패 {len(unmatched)}종 — products.json 에 추가 필요:")
         for u in sorted(unmatched)[:10]:
             print(f"      {u}")
-    return total
+    return new, updated, len(by_id)
+
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--api", help="신규만 수집할 상품 slug 또는 all (매일)")
-    ap.add_argument("--deep", help="API 허용 전 구간 백필. 중단되면 다시 돌리면 이어진다")
+    ap.add_argument("--api", action="store_true", help="전 상품 신규만 수집 (매일)")
+    ap.add_argument("--deep", type=int, metavar="PRODUCT_NO",
+                    help="해당 product_no 로 API 전 구간 백필. 재실행하면 이어진다")
     ap.add_argument("--csv", help="알파리뷰 엑셀 내보내기 CSV")
     a = ap.parse_args()
-    if not (a.api or a.csv or a.deep): sys.exit("--api / --deep / --csv 중 하나 필요")
-
-    if a.deep:
-        targets = products() if a.deep == "all" else [p for p in products() if p["slug"] == a.deep]
-        if not targets: sys.exit(f"알 수 없는 slug: {a.deep}")
-        for p in targets:
-            n = backfill_api(p["slug"], p["product_no"])
-            print(f"  {p['slug']}: 백필 신규 {n:,}건 · 스토어 {len(load_store(p['slug'])):,}건")
+    if not (a.api or a.deep or a.csv):
+        sys.exit("--api / --deep / --csv 중 하나 필요")
 
     if a.csv:
         print(f"CSV 백필: {a.csv}")
-        print(f"→ 신규 {sync_csv(a.csv):,}건 병합")
+        new, upd, total = sync_csv(a.csv)
+        print(f"→ 신규 {new:,}건 · 작성일 갱신 {upd:,}건 · 스토어 {total:,}건")
+
+    if a.deep:
+        print(f"전 구간 백필: product_no={a.deep}")
+        n, total = backfill_api(a.deep)
+        print(f"→ 신규 {n:,}건 · 스토어 {total:,}건")
 
     if a.api:
-        targets = products() if a.api == "all" else [p for p in products() if p["slug"] == a.api]
-        if not targets: sys.exit(f"알 수 없는 slug: {a.api}")
-        for p in targets:
-            n, total = sync_api(p["slug"], p["product_no"])
-            have = len(load_store(p["slug"]))
-            print(f"  {p['slug']}: 신규 {n}건 · 스토어 {have:,}건 / 알파리뷰 보유 {total:,}건")
+        new, total = sync_api()
+        print(f"→ 신규 {new:,}건 · 스토어 {total:,}건")
+
 
 if __name__ == "__main__":
     main()

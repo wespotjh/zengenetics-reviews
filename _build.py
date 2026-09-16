@@ -2,22 +2,28 @@
 """
 리뷰 스토어 → 정적 사이트 (review.zengenetics.co.kr)
 
-페이지 경계 고정이 이 빌더의 핵심이다. 스토어를 id 오름차순(과거→최신)으로 놓고
-PER_PAGE 씩 끊으면 신규 리뷰는 **마지막 페이지에만** 쌓인다. 기존 페이지의 URL 과
-내용이 그대로 유지되므로,
+**리뷰 자신의 product_no 로 페이지를 나눈다.** 조회에 쓴 product_no 가 아니다 —
+알파리뷰는 성분이 같은 상품군에 같은 리뷰 풀을 돌려주기 때문에, 조회 기준으로 나누면
+같은 리뷰가 여러 페이지에 중복 게재된다(자세한 근거는 `_sync.py` 상단 주석).
+
+**페이지 경계 고정.** 스토어를 id 오름차순(과거→최신)으로 놓고 PER_PAGE 씩 끊으면
+신규 리뷰는 마지막 페이지에만 쌓인다. 기존 페이지의 URL 과 내용이 유지되므로
   - 매일 재배포되는 파일이 1~2개뿐이고
   - 이미 색인된 페이지 내용이 매일 뒤바뀌지 않는다 (색인 감점 회피)
+대신 1페이지가 과거 리뷰가 되므로 허브는 최신 페이지를 앞에 놓는다.
 
-심의 설계 (건강기능식품 표시·광고):
-  1. 전량 게재. 골라 싣지 않는다 — 선별하면 이용후기가 아니라 광고가 된다
-  2. 브랜드가 쓴 효능 문장 0줄. 고객 원문과 중립 라벨(평점·날짜)만
+**심의 설계 (건강기능식품 표시·광고)**
+  1. 전량 게재, 작성 순서대로 — 골라 싣으면 이용후기가 아니라 광고가 된다
+  2. 브랜드가 쓴 효능 문장 0줄 — 고객 원문과 중립 라벨(평점·날짜)만
   3. 화면에 보이는 리뷰만 Review 마크업 — 안 보이는 것을 넣으면 정책 위반
 
 사용: python3 _build.py [--domain review.zengenetics.co.kr] [--out dist]
 """
 import argparse, csv, html, json, os, re
+from collections import defaultdict
 
-HERE, DATA = os.path.dirname(os.path.abspath(__file__)), None
+HERE = os.path.dirname(os.path.abspath(__file__))
+DATA = os.path.join(HERE, "data")
 PER_PAGE = 50
 
 # 칼륨의 인정 기능성은 나트륨 배출이다. 그 밖의 표현은 삭제하지 않고 분리해 검수에 넘긴다.
@@ -41,11 +47,13 @@ ul.rvs{list-style:none;padding:0;margin:0}
 .rv-h{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:#5F626C;margin-bottom:6px}
 .rv-b{white-space:pre-wrap;word-break:break-word}
 .rv-o{margin-top:8px;font-size:12.5px;color:#93959D}
-.nav{margin-top:32px;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.nav{margin-top:32px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .nav a{padding:8px 14px;border:1px solid #D8D6D0;border-radius:6px;text-decoration:none}
 .hub{list-style:none;padding:0;margin:0}
 .hub li{border-top:1px solid #E9E8E4;padding:14px 0}
-.hub .n{color:#93959D;font-size:13px;margin-left:8px}
+.hub .n{color:#93959D;font-size:13px}
+.hub .pages{margin-top:6px;display:flex;flex-wrap:wrap;gap:8px}
+.hub .pages a{font-size:13px}
 .note{margin-top:40px;padding-top:16px;border-top:1px solid #E9E8E4;font-size:12.5px;color:#93959D}
 @media (prefers-color-scheme:dark){
 :root:not([data-theme="light"]) body{background:#141413;color:#EDEDEB}
@@ -54,7 +62,10 @@ ul.rvs{list-style:none;padding:0;margin:0}
 :root:not([data-theme="light"]) .note{border-color:#2E2E2B}
 :root:not([data-theme="light"]) .nav a{border-color:#3A3A36}}"""
 
-def esc(s): return html.escape(str(s or ""), quote=True)
+
+def esc(s):
+    return html.escape(str(s if s is not None else ""), quote=True)
+
 
 def shell(title, desc, canon, body):
     return f"""<!doctype html>
@@ -66,27 +77,32 @@ def shell(title, desc, canon, body):
 <style>{CSS}</style>
 </head><body><div class="w">{body}</div></body></html>"""
 
+
 def review_li(r):
     rating = r.get("ratings")
     # 추정 날짜(수집일)는 표시하지 않는다 — 실제 작성일이 확인된 것만 보여준다
     dt = "" if r.get("date_estimated") else (r.get("date") or "")
     body = esc(r["content"]).replace("\n", "<br>")
-    rate = (f'<span itemprop="reviewRating" itemscope itemtype="https://schema.org/Rating">'
-            f'평점 <span itemprop="ratingValue">{esc(rating)}</span></span>') if rating else ""
+    rate = (f'<span itemprop="reviewRating" itemscope '
+            f'itemtype="https://schema.org/Rating">평점 '
+            f'<span itemprop="ratingValue">{esc(rating)}</span></span>') if rating else ""
     opt = f'<div class="rv-o">{esc(r["option"])}</div>' if r.get("option") else ""
     return (f'<li class="rv" itemscope itemtype="https://schema.org/Review">'
             f'<div class="rv-h"><span>{rate}</span><span>{esc(dt)}</span></div>'
             f'<div class="rv-b" itemprop="reviewBody">{body}</div>{opt}</li>')
 
-def build_product(prod, rows, domain, out):
-    slug, name = prod["slug"], prod["name"]
-    pages = [rows[i:i+PER_PAGE] for i in range(0, len(rows), PER_PAGE)] or [[]]
+
+def build_group(slug, name, rows, domain, out):
+    pages = [rows[i:i + PER_PAGE] for i in range(0, len(rows), PER_PAGE)] or [[]]
     urls = []
     for i, chunk in enumerate(pages, 1):
         fn = f"{slug}-{i}.html"
         canon = f"https://{domain}/{fn}"
-        nav = [f'<a href="/{slug}-{i-1}.html" rel="prev">이전</a>'] if i > 1 else []
-        if i < len(pages): nav.append(f'<a href="/{slug}-{i+1}.html" rel="next">다음</a>')
+        nav = []
+        if i > 1:
+            nav.append(f'<a href="/{slug}-{i - 1}.html" rel="prev">이전</a>')
+        if i < len(pages):
+            nav.append(f'<a href="/{slug}-{i + 1}.html" rel="next">다음</a>')
         nav.append('<a href="/">전체 목록</a>')
         ld = [{"@type": "Review",
                "reviewRating": {"@type": "Rating", "ratingValue": r["ratings"]},
@@ -108,49 +124,57 @@ def build_product(prod, rows, domain, out):
         urls.append(canon)
     return urls, len(pages)
 
-def build(domain, out):
-    prods = json.load(open(os.path.join(DATA, "products.json"), encoding="utf-8"))
-    os.makedirs(out, exist_ok=True)
-    all_urls, hub, flagged, total = [f"https://{domain}/"], [], [], 0
 
-    for p in prods:
-        fp = os.path.join(DATA, f"{p['slug']}.json")
-        if not os.path.exists(fp):
+def build(domain, out):
+    store = json.load(open(os.path.join(DATA, "reviews.json"), encoding="utf-8"))
+    prods = {p["product_no"]: p for p in
+             json.load(open(os.path.join(DATA, "products.json"), encoding="utf-8"))}
+    os.makedirs(out, exist_ok=True)
+
+    # 리뷰 자신의 product_no 로 묶는다. 어떤 리뷰도 두 번 게재되지 않는다.
+    groups, orphans = defaultdict(list), []
+    for r in store:
+        if not r.get("content"):
             continue
-        rows = [r for r in json.load(open(fp, encoding="utf-8")) if r.get("content")]
+        p = prods.get(r.get("product_no"))
+        (groups[p["slug"]] if p else orphans).append(r)
+
+    all_urls, hub, flagged = [f"https://{domain}/"], [], []
+    for pno, p in sorted(prods.items(), key=lambda kv: kv[0]):
+        rows = groups.get(p["slug"])
         if not rows:
             continue
-        urls, npages = build_product(p, rows, domain, out)
-        all_urls += urls; total += len(rows)
-        # 허브는 최신 페이지를 위로 — URL 은 고정이고 목록 순서만 뒤집는다
+        rows.sort(key=lambda r: int(r["id"]))
+        urls, npages = build_group(p["slug"], p["name"], rows, domain, out)
+        all_urls += urls
         hub.append((p, len(rows), npages))
         for r in rows:
             hits = [lab for lab, pat in RISK.items() if re.search(pat, r["content"])]
             if hits:
-                flagged.append({"slug": p["slug"], "id": r["id"], "ratings": r.get("ratings"),
-                                "date": r.get("date"), "사유": " / ".join(hits),
-                                "content": r["content"]})
+                flagged.append({"slug": p["slug"], "id": r["id"],
+                                "ratings": r.get("ratings"), "date": r.get("date"),
+                                "사유": " / ".join(hits), "content": r["content"]})
 
+    total = sum(c for _, c, _ in hub)
     items = "".join(
         f'<li><a href="/{p["slug"]}-{n}.html">{esc(p["name"])}</a>'
-        f'<span class="n">{cnt:,}건 · {n}페이지</span>'
-        f'<div class="n">' + " ".join(
-            f'<a href="/{p["slug"]}-{i}.html">{i}</a>' for i in range(n, 0, -1)
-        ) + '</div></li>'
-        for p, cnt, n in hub)
+        f'<div class="n">{cnt:,}건 · {n}페이지</div>'
+        f'<div class="pages">'
+        + " ".join(f'<a href="/{p["slug"]}-{i}.html">{i}</a>' for i in range(n, 0, -1))
+        + '</div></li>' for p, cnt, n in hub)
     open(os.path.join(out, "index.html"), "w", encoding="utf-8").write(shell(
-        "젠제네틱스 구매 후기", f"젠제네틱스 제품 구매 고객이 직접 작성한 이용후기 {total:,}건.",
+        "젠제네틱스 구매 후기",
+        f"젠제네틱스 제품 구매 고객이 직접 작성한 이용후기 {total:,}건.",
         f"https://{domain}/",
         f'<h1>젠제네틱스 구매 후기</h1>'
         f'<p class="sub">총 {total:,}건 · 구매 고객이 직접 작성한 이용후기입니다. '
-        f'최신 페이지가 각 줄의 첫 번호입니다.</p>'
+        f'각 줄의 첫 번호가 최신 페이지입니다.</p>'
         f'<ul class="hub">{items}</ul><p class="note">{NOTE}</p>'))
 
     open(os.path.join(out, "sitemap.xml"), "w", encoding="utf-8").write(
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         + "".join(f"<url><loc>{u}</loc></url>\n" for u in all_urls) + "</urlset>\n")
-
     open(os.path.join(out, "robots.txt"), "w", encoding="utf-8").write(
         f"User-agent: *\nAllow: /\n\nSitemap: https://{domain}/sitemap.xml\n")
     open(os.path.join(out, "CNAME"), "w", encoding="utf-8").write(domain + "\n")
@@ -158,19 +182,26 @@ def build(domain, out):
     if flagged:
         with open(os.path.join(out, "심의검토_대상.csv"), "w",
                   encoding="utf-8-sig", newline="") as f:
-            w = csv.DictWriter(f, fieldnames=["slug", "id", "ratings", "date", "사유", "content"])
+            w = csv.DictWriter(f, fieldnames=["slug", "id", "ratings", "date",
+                                              "사유", "content"])
             w.writeheader(); w.writerows(flagged)
 
-    chars = sum(len(r["content"]) for p, c, n in hub
-                for r in json.load(open(os.path.join(DATA, f"{p['slug']}.json"), encoding="utf-8")))
-    print(f"상품 {len(hub)}종 · 리뷰 {total:,}건 · 페이지 {len(all_urls)-1}장 → {out}/")
-    print(f"크롤러가 읽을 본문 {chars:,}자 (현재 카페24 상세페이지는 130자)")
-    print(f"심의 검토 대상 {len(flagged)}건" + (" → dist/심의검토_대상.csv" if flagged else ""))
+    chars = sum(len(r["content"]) for rows in groups.values() for r in rows)
+    print(f"상품 {len(hub)}종 · 리뷰 {total:,}건 · 페이지 {len(all_urls) - 1}장 → {out}/")
+    for p, cnt, n in hub:
+        print(f"    {p['slug']:<20} {cnt:>6,}건 · {n:>3}페이지")
+    if orphans:
+        names = sorted({r.get("product_name") or "(상품명 없음)" for r in orphans})
+        print(f"  ⚠ products.json 에 없는 상품의 리뷰 {len(orphans):,}건은 제외됐다:")
+        for nm in names[:8]:
+            print(f"      {nm}")
+    print(f"크롤러가 읽을 본문 {chars:,}자 (카페24 상세페이지는 130자)")
+    print(f"심의 검토 대상 {len(flagged)}건" + (" → 심의검토_대상.csv" if flagged else ""))
+
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--domain", default="review.zengenetics.co.kr")
     ap.add_argument("--out", default=os.path.join(HERE, "dist"))
     a = ap.parse_args()
-    DATA = os.path.join(HERE, "data")
     build(a.domain, a.out)
