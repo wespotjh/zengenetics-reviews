@@ -77,6 +77,9 @@ def awards_for(p=None):
 
 def note_for(p=None):
     ft = (p or {}).get("food_type")
+    if ft == "건강기능식품":
+        # 건강기능식품에 "건강기능식품이 아닙니다" 를 붙이면 사실과 반대가 된다.
+        return NOTE_BASE + " 본 제품의 식품유형은 건강기능식품입니다."
     if ft:
         return NOTE_BASE + f" 본 제품의 식품유형은 {ft}이며, 건강기능식품이 아닙니다."
     return NOTE_BASE
