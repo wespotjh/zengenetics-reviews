@@ -25,6 +25,7 @@ from collections import defaultdict
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(HERE, "data")
 PER_PAGE = 50
+LINK_PREFIX = "/"
 
 # 칼륨의 인정 기능성은 나트륨 배출이다. 그 밖의 표현은 삭제하지 않고 분리해 검수에 넘긴다.
 RISK = {"체중·다이어트": r"체중|몸무게|다이어트|감량|\d+\s*(kg|키로|킬로)|살\s*빠",
@@ -100,10 +101,10 @@ def build_group(slug, name, rows, domain, out):
         canon = f"https://{domain}/{fn}"
         nav = []
         if i > 1:
-            nav.append(f'<a href="/{slug}-{i - 1}.html" rel="prev">이전</a>')
+            nav.append(f'<a href="{LINK_PREFIX}{slug}-{i - 1}.html" rel="prev">이전</a>')
         if i < len(pages):
-            nav.append(f'<a href="/{slug}-{i + 1}.html" rel="next">다음</a>')
-        nav.append('<a href="/">전체 목록</a>')
+            nav.append(f'<a href="{LINK_PREFIX}{slug}-{i + 1}.html" rel="next">다음</a>')
+        nav.append(f'<a href="{LINK_PREFIX or "./"}">전체 목록</a>')
         ld = [{"@type": "Review",
                "reviewRating": {"@type": "Rating", "ratingValue": r["ratings"]},
                "reviewBody": r["content"][:1500]} for r in chunk if r.get("ratings")]
@@ -126,6 +127,11 @@ def build_group(slug, name, rows, domain, out):
 
 
 def build(domain, out):
+    # 기본 Pages 주소(wespotjh.github.io/zengenetics-reviews/)는 하위 경로를 갖는다.
+    # 링크를 "/xxx.html" 로 쓰면 루트로 가서 깨지므로 상대경로로 낸다.
+    global LINK_PREFIX
+    LINK_PREFIX = "" if "/" in domain else "/"
+    # canonical/sitemap 은 아래 f-string 들이 https://{domain}/ 로 조립한다
     store = json.load(open(os.path.join(DATA, "reviews.json"), encoding="utf-8"))
     prods = {p["product_no"]: p for p in
              json.load(open(os.path.join(DATA, "products.json"), encoding="utf-8"))}
@@ -157,10 +163,10 @@ def build(domain, out):
 
     total = sum(c for _, c, _ in hub)
     items = "".join(
-        f'<li><a href="/{p["slug"]}-{n}.html">{esc(p["name"])}</a>'
+        f'<li><a href="{LINK_PREFIX}{p["slug"]}-{n}.html">{esc(p["name"])}</a>'
         f'<div class="n">{cnt:,}건 · {n}페이지</div>'
         f'<div class="pages">'
-        + " ".join(f'<a href="/{p["slug"]}-{i}.html">{i}</a>' for i in range(n, 0, -1))
+        + " ".join(f'<a href="{LINK_PREFIX}{p["slug"]}-{i}.html">{i}</a>' for i in range(n, 0, -1))
         + '</div></li>' for p, cnt, n in hub)
     open(os.path.join(out, "index.html"), "w", encoding="utf-8").write(shell(
         "젠제네틱스 구매 후기",
@@ -177,7 +183,14 @@ def build(domain, out):
         + "".join(f"<url><loc>{u}</loc></url>\n" for u in all_urls) + "</urlset>\n")
     open(os.path.join(out, "robots.txt"), "w", encoding="utf-8").write(
         f"User-agent: *\nAllow: /\n\nSitemap: https://{domain}/sitemap.xml\n")
-    open(os.path.join(out, "CNAME"), "w", encoding="utf-8").write(domain + "\n")
+    # CNAME 은 커스텀 도메인일 때만 쓴다. github.io 기본 주소로 배포할 때 이 파일이
+    # 있으면 Pages 가 아직 붙지 않은 도메인으로 강제 전환하려 해서 사이트가 안 뜬다.
+    cname = os.path.join(out, "CNAME")
+    if domain.endswith(".github.io") or "/" in domain:
+        if os.path.exists(cname):
+            os.remove(cname)
+    else:
+        open(cname, "w", encoding="utf-8").write(domain + "\n")
 
     if flagged:
         with open(os.path.join(out, "심의검토_대상.csv"), "w",
