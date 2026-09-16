@@ -1,0 +1,12 @@
+[
+  {"product_no": 11,  "slug": "potassium",          "name": "젠제네틱스 포타슘 칼륨 (20ea)"},
+  {"product_no": 13,  "slug": "vitaminb",           "name": "젠제네틱스 비타민B컴플렉스 (20ea)"},
+  {"product_no": 16,  "slug": "magnesium",          "name": "젠제네틱스 마그네슘 (20ea)"},
+  {"product_no": 60,  "slug": "daypack-potassium",  "name": "젠제네틱스 포타슘 칼륨 데이팩(6ea)"},
+  {"product_no": 61,  "slug": "daypack-magnesium",  "name": "젠제네틱스 마그네슘 데이팩(6ea)"},
+  {"product_no": 62,  "slug": "daypack-vitaminb",   "name": "젠제네틱스 비타민B컴플렉스 데이팩(6ea)"},
+  {"product_no": 63,  "slug": "set-swell",          "name": "붓기 부스터 칼륨(2box) & 비타민B컴플렉스(1box) SET"},
+  {"product_no": 64,  "slug": "set-performance",    "name": "퍼포먼스 부스터 마그네슘(1box) & 비타민B컴플렉스(1box) SET"},
+  {"product_no": 71,  "slug": "first-buy",          "name": "칼륨/마그네슘/비타민B컴플렉스 생애 첫 구매 EVENT"},
+  {"product_no": 98,  "slug": "set-kmb",            "name": "칼마비 건강루틴 칼륨·마그네슘·비타민B컴플렉스 SET"}
+]

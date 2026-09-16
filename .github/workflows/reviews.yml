@@ -1,0 +1,77 @@
+name: 리뷰 사이트 배포
+
+# 신규 리뷰를 알파리뷰 API 로 받아 스토어에 병합하고, 정적 사이트를 다시 만들어
+# GitHub Pages(review.zengenetics.co.kr)로 배포한다. 사람 개입 없이 매일 돈다.
+
+on:
+  schedule:
+    - cron: "20 19 * * *"        # UTC 19:20 = KST 04:20
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "_sync.py"
+      - "_build.py"
+      - "data/**"
+      - ".github/workflows/reviews.yml"
+
+permissions:
+  contents: write                # 수집한 신규 리뷰를 스토어에 커밋
+  pages: write
+  id-token: write
+
+concurrency:
+  group: reviews
+  cancel-in-progress: false      # 배포 중간에 끊기면 사이트가 반쪽이 된다
+
+jobs:
+  sync-build-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 신규 리뷰 수집
+        run: python3 _sync.py --api all
+
+      - name: 스토어 변경분 커밋
+        run: |
+          if [ -n "$(git status --porcelain data)" ]; then
+            git config user.name  "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add data
+            git commit -m "리뷰 스토어 동기화 ($(date -u +%Y-%m-%d))"
+            git push
+          else
+            echo "신규 리뷰 없음 — 커밋 생략"
+          fi
+
+      - name: 사이트 생성
+        run: python3 _build.py
+
+      # 심의 검토 대상은 사이트에 올리지 않는다 — 검수용 내부 산출물이다
+      - name: 심의 검토 대상 분리
+        run: |
+          if [ -f dist/심의검토_대상.csv ]; then
+            mkdir -p review-queue && mv dist/심의검토_대상.csv review-queue/
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: hashFiles('review-queue/*') != ''
+        with:
+          name: 심의검토_대상
+          path: review-queue/
+          retention-days: 30
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - id: deploy
+        uses: actions/deploy-pages@v4

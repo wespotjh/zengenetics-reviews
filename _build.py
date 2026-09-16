@@ -1,0 +1,176 @@
+#!/usr/bin/env python3
+"""
+리뷰 스토어 → 정적 사이트 (review.zengenetics.co.kr)
+
+페이지 경계 고정이 이 빌더의 핵심이다. 스토어를 id 오름차순(과거→최신)으로 놓고
+PER_PAGE 씩 끊으면 신규 리뷰는 **마지막 페이지에만** 쌓인다. 기존 페이지의 URL 과
+내용이 그대로 유지되므로,
+  - 매일 재배포되는 파일이 1~2개뿐이고
+  - 이미 색인된 페이지 내용이 매일 뒤바뀌지 않는다 (색인 감점 회피)
+
+심의 설계 (건강기능식품 표시·광고):
+  1. 전량 게재. 골라 싣지 않는다 — 선별하면 이용후기가 아니라 광고가 된다
+  2. 브랜드가 쓴 효능 문장 0줄. 고객 원문과 중립 라벨(평점·날짜)만
+  3. 화면에 보이는 리뷰만 Review 마크업 — 안 보이는 것을 넣으면 정책 위반
+
+사용: python3 _build.py [--domain review.zengenetics.co.kr] [--out dist]
+"""
+import argparse, csv, html, json, os, re
+
+HERE, DATA = os.path.dirname(os.path.abspath(__file__)), None
+PER_PAGE = 50
+
+# 칼륨의 인정 기능성은 나트륨 배출이다. 그 밖의 표현은 삭제하지 않고 분리해 검수에 넘긴다.
+RISK = {"체중·다이어트": r"체중|몸무게|다이어트|감량|\d+\s*(kg|키로|킬로)|살\s*빠",
+        "질병·치료":     r"치료|완치|질병|병원|약\s*대신|처방",
+        "의학적 단정":   r"효과\s*보장|100%|무조건|반드시\s*낫"}
+
+NOTE = ("본 페이지는 구매 고객이 작성한 이용후기를 작성 순서대로 그대로 게시한 것이며, "
+        "판매자가 선별하거나 편집하지 않았습니다. 개인의 후기는 섭취에 따른 효과를 "
+        "보증하지 않습니다. 건강기능식품은 질병의 예방·치료를 위한 의약품이 아닙니다.")
+
+CSS = """*{box-sizing:border-box}
+body{font:16px/1.7 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Segoe UI",sans-serif;
+margin:0;color:#15161A;background:#fff}
+.w{max-width:760px;margin:0 auto;padding:24px 20px 64px}
+a{color:#1A2B6B}
+h1{font-size:20px;margin:0 0 4px;line-height:1.35}
+.sub{color:#5F626C;font-size:14px;margin:0 0 24px}
+ul.rvs{list-style:none;padding:0;margin:0}
+.rv{border-top:1px solid #E9E8E4;padding:18px 0}
+.rv-h{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:#5F626C;margin-bottom:6px}
+.rv-b{white-space:pre-wrap;word-break:break-word}
+.rv-o{margin-top:8px;font-size:12.5px;color:#93959D}
+.nav{margin-top:32px;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.nav a{padding:8px 14px;border:1px solid #D8D6D0;border-radius:6px;text-decoration:none}
+.hub{list-style:none;padding:0;margin:0}
+.hub li{border-top:1px solid #E9E8E4;padding:14px 0}
+.hub .n{color:#93959D;font-size:13px;margin-left:8px}
+.note{margin-top:40px;padding-top:16px;border-top:1px solid #E9E8E4;font-size:12.5px;color:#93959D}
+@media (prefers-color-scheme:dark){
+:root:not([data-theme="light"]) body{background:#141413;color:#EDEDEB}
+:root:not([data-theme="light"]) a{color:#9DB2FF}
+:root:not([data-theme="light"]) .rv,:root:not([data-theme="light"]) .hub li,
+:root:not([data-theme="light"]) .note{border-color:#2E2E2B}
+:root:not([data-theme="light"]) .nav a{border-color:#3A3A36}}"""
+
+def esc(s): return html.escape(str(s or ""), quote=True)
+
+def shell(title, desc, canon, body):
+    return f"""<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{esc(title)}</title>
+<meta name="description" content="{esc(desc)}">
+<link rel="canonical" href="{esc(canon)}">
+<style>{CSS}</style>
+</head><body><div class="w">{body}</div></body></html>"""
+
+def review_li(r):
+    rating = r.get("ratings")
+    # 추정 날짜(수집일)는 표시하지 않는다 — 실제 작성일이 확인된 것만 보여준다
+    dt = "" if r.get("date_estimated") else (r.get("date") or "")
+    body = esc(r["content"]).replace("\n", "<br>")
+    rate = (f'<span itemprop="reviewRating" itemscope itemtype="https://schema.org/Rating">'
+            f'평점 <span itemprop="ratingValue">{esc(rating)}</span></span>') if rating else ""
+    opt = f'<div class="rv-o">{esc(r["option"])}</div>' if r.get("option") else ""
+    return (f'<li class="rv" itemscope itemtype="https://schema.org/Review">'
+            f'<div class="rv-h"><span>{rate}</span><span>{esc(dt)}</span></div>'
+            f'<div class="rv-b" itemprop="reviewBody">{body}</div>{opt}</li>')
+
+def build_product(prod, rows, domain, out):
+    slug, name = prod["slug"], prod["name"]
+    pages = [rows[i:i+PER_PAGE] for i in range(0, len(rows), PER_PAGE)] or [[]]
+    urls = []
+    for i, chunk in enumerate(pages, 1):
+        fn = f"{slug}-{i}.html"
+        canon = f"https://{domain}/{fn}"
+        nav = [f'<a href="/{slug}-{i-1}.html" rel="prev">이전</a>'] if i > 1 else []
+        if i < len(pages): nav.append(f'<a href="/{slug}-{i+1}.html" rel="next">다음</a>')
+        nav.append('<a href="/">전체 목록</a>')
+        ld = [{"@type": "Review",
+               "reviewRating": {"@type": "Rating", "ratingValue": r["ratings"]},
+               "reviewBody": r["content"][:1500]} for r in chunk if r.get("ratings")]
+        jsonld = json.dumps({"@context": "https://schema.org", "@type": "ItemList",
+                             "name": f"{name} 구매 후기", "numberOfItems": len(ld),
+                             "itemListElement": ld}, ensure_ascii=False)
+        body = (f'<h1>{esc(name)} 구매 후기</h1>'
+                f'<p class="sub">총 {len(rows):,}건 · {i}/{len(pages)}페이지 · '
+                f'구매 고객이 직접 작성한 이용후기입니다.</p>'
+                f'<ul class="rvs">{"".join(review_li(r) for r in chunk)}</ul>'
+                f'<div class="nav">{"".join(nav)}</div>'
+                f'<p class="note">{NOTE}</p>'
+                f'<script type="application/ld+json">{jsonld}</script>')
+        open(os.path.join(out, fn), "w", encoding="utf-8").write(shell(
+            f"{name} 구매 후기 {i}/{len(pages)}페이지",
+            f"{name} 구매 고객이 직접 작성한 이용후기 {len(rows):,}건 중 {i}페이지.",
+            canon, body))
+        urls.append(canon)
+    return urls, len(pages)
+
+def build(domain, out):
+    prods = json.load(open(os.path.join(DATA, "products.json"), encoding="utf-8"))
+    os.makedirs(out, exist_ok=True)
+    all_urls, hub, flagged, total = [f"https://{domain}/"], [], [], 0
+
+    for p in prods:
+        fp = os.path.join(DATA, f"{p['slug']}.json")
+        if not os.path.exists(fp):
+            continue
+        rows = [r for r in json.load(open(fp, encoding="utf-8")) if r.get("content")]
+        if not rows:
+            continue
+        urls, npages = build_product(p, rows, domain, out)
+        all_urls += urls; total += len(rows)
+        # 허브는 최신 페이지를 위로 — URL 은 고정이고 목록 순서만 뒤집는다
+        hub.append((p, len(rows), npages))
+        for r in rows:
+            hits = [lab for lab, pat in RISK.items() if re.search(pat, r["content"])]
+            if hits:
+                flagged.append({"slug": p["slug"], "id": r["id"], "ratings": r.get("ratings"),
+                                "date": r.get("date"), "사유": " / ".join(hits),
+                                "content": r["content"]})
+
+    items = "".join(
+        f'<li><a href="/{p["slug"]}-{n}.html">{esc(p["name"])}</a>'
+        f'<span class="n">{cnt:,}건 · {n}페이지</span>'
+        f'<div class="n">' + " ".join(
+            f'<a href="/{p["slug"]}-{i}.html">{i}</a>' for i in range(n, 0, -1)
+        ) + '</div></li>'
+        for p, cnt, n in hub)
+    open(os.path.join(out, "index.html"), "w", encoding="utf-8").write(shell(
+        "젠제네틱스 구매 후기", f"젠제네틱스 제품 구매 고객이 직접 작성한 이용후기 {total:,}건.",
+        f"https://{domain}/",
+        f'<h1>젠제네틱스 구매 후기</h1>'
+        f'<p class="sub">총 {total:,}건 · 구매 고객이 직접 작성한 이용후기입니다. '
+        f'최신 페이지가 각 줄의 첫 번호입니다.</p>'
+        f'<ul class="hub">{items}</ul><p class="note">{NOTE}</p>'))
+
+    open(os.path.join(out, "sitemap.xml"), "w", encoding="utf-8").write(
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        + "".join(f"<url><loc>{u}</loc></url>\n" for u in all_urls) + "</urlset>\n")
+
+    open(os.path.join(out, "robots.txt"), "w", encoding="utf-8").write(
+        f"User-agent: *\nAllow: /\n\nSitemap: https://{domain}/sitemap.xml\n")
+    open(os.path.join(out, "CNAME"), "w", encoding="utf-8").write(domain + "\n")
+
+    if flagged:
+        with open(os.path.join(out, "심의검토_대상.csv"), "w",
+                  encoding="utf-8-sig", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=["slug", "id", "ratings", "date", "사유", "content"])
+            w.writeheader(); w.writerows(flagged)
+
+    chars = sum(len(r["content"]) for p, c, n in hub
+                for r in json.load(open(os.path.join(DATA, f"{p['slug']}.json"), encoding="utf-8")))
+    print(f"상품 {len(hub)}종 · 리뷰 {total:,}건 · 페이지 {len(all_urls)-1}장 → {out}/")
+    print(f"크롤러가 읽을 본문 {chars:,}자 (현재 카페24 상세페이지는 130자)")
+    print(f"심의 검토 대상 {len(flagged)}건" + (" → dist/심의검토_대상.csv" if flagged else ""))
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--domain", default="review.zengenetics.co.kr")
+    ap.add_argument("--out", default=os.path.join(HERE, "dist"))
+    a = ap.parse_args()
+    DATA = os.path.join(HERE, "data")
+    build(a.domain, a.out)
