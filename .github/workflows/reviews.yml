@@ -38,7 +38,7 @@ jobs:
           python-version: "3.12"
 
       - name: 신규 리뷰 수집
-        run: python3 _sync.py --api all
+        run: python3 _sync.py --api
 
       - name: 스토어 변경분 커밋
         run: |
