@@ -68,6 +68,37 @@ def esc(s):
     return html.escape(str(s if s is not None else ""), quote=True)
 
 
+# 검색엔진 소유 확인용 meta 태그. data/verification/meta.txt 에 태그 원문을 한 줄씩
+# 넣으면 전 페이지 <head> 에 그대로 들어간다 (Search Console 의 "HTML 태그" 방식).
+VERIFY_META = ""
+
+
+def load_verification():
+    """data/verification/ 의 파일을 dist 루트로 그대로 복사하고, meta.txt 는 태그로 쓴다.
+
+    Search Console 은 소유 확인에 ① HTML 파일 업로드(googleXXXX.html) ② HTML 태그
+    두 방식을 쓴다. 둘 다 사이트에 뭔가를 올려야 하는데, 이 사이트는 우리가 빌드하므로
+    여기에 넣어두면 배포가 알아서 처리한다. DNS 를 또 건드릴 필요가 없다.
+    """
+    global VERIFY_META
+    src = os.path.join(DATA, "verification")
+    files = []
+    if not os.path.isdir(src):
+        return files
+    for fn in sorted(os.listdir(src)):
+        path = os.path.join(src, fn)
+        if not os.path.isfile(path):
+            continue
+        if fn.lower().endswith(".md"):
+            continue                      # 이 폴더의 설명 문서는 배포 대상이 아니다
+        if fn == "meta.txt":
+            VERIFY_META = "\n".join(
+                l.strip() for l in open(path, encoding="utf-8") if l.strip())
+        else:
+            files.append((fn, path))
+    return files
+
+
 def shell(title, desc, canon, body):
     return f"""<!doctype html>
 <html lang="ko"><head><meta charset="utf-8">
@@ -75,6 +106,7 @@ def shell(title, desc, canon, body):
 <title>{esc(title)}</title>
 <meta name="description" content="{esc(desc)}">
 <link rel="canonical" href="{esc(canon)}">
+{VERIFY_META}
 <style>{CSS}</style>
 </head><body><div class="w">{body}</div></body></html>"""
 
@@ -132,6 +164,7 @@ def build(domain, out):
     global LINK_PREFIX
     LINK_PREFIX = "" if "/" in domain else "/"
     # canonical/sitemap 은 아래 f-string 들이 https://{domain}/ 로 조립한다
+    verify_files = load_verification()
     store = json.load(open(os.path.join(DATA, "reviews.json"), encoding="utf-8"))
     prods = {p["product_no"]: p for p in
              json.load(open(os.path.join(DATA, "products.json"), encoding="utf-8"))}
@@ -192,6 +225,10 @@ def build(domain, out):
     else:
         open(cname, "w", encoding="utf-8").write(domain + "\n")
 
+    import shutil
+    for fn, path in verify_files:
+        shutil.copyfile(path, os.path.join(out, fn))
+
     if flagged:
         with open(os.path.join(out, "심의검토_대상.csv"), "w",
                   encoding="utf-8-sig", newline="") as f:
@@ -209,6 +246,9 @@ def build(domain, out):
         for nm in names[:8]:
             print(f"      {nm}")
     print(f"크롤러가 읽을 본문 {chars:,}자 (카페24 상세페이지는 130자)")
+    if verify_files or VERIFY_META:
+        bits = [fn for fn, _ in verify_files] + (["meta 태그"] if VERIFY_META else [])
+        print(f"소유 확인: {', '.join(bits)}")
     print(f"심의 검토 대상 {len(flagged)}건" + (" → 심의검토_대상.csv" if flagged else ""))
 
 
