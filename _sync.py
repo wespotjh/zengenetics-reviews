@@ -164,7 +164,10 @@ def backfill_api(product_no, delay=0.5):
     return n, len(by_id)
 
 
-CSV_COLS = {"id": ("리뷰번호", "리뷰ID", "번호", "id"),
+# 상품명으로 특정할 수 없고 제품 리뷰도 아닌 것은 아예 받지 않는다.
+CSV_EXCLUDE = ("BPC 시즌3 참가신청",)
+
+CSV_COLS = {"id": ("리뷰번호", "리뷰ID", "리뷰no", "번호", "id"),
             "ratings": ("평점", "별점", "만족도", "rating"),
             "content": ("리뷰내용", "리뷰본문", "내용", "본문", "content"),
             "date": ("작성일", "등록일", "작성일시", "date"),
@@ -180,21 +183,53 @@ def pick(row, names):
     return ""
 
 
+def resolve_product(name, prods):
+    """CSV 의 상품명 → product_no.
+
+    알파리뷰 엑셀의 상품명은 사이트의 상품명과 표기가 다르다. 같은 상품인데
+    `[설인아 PICK]` 같은 기획전 접두어가 붙고, `데이팩(6ea)` / `데이팩 (6ea)` 처럼
+    공백이 다르다. 그래서 products.json 의 aliases 로 먼저 정확히 맞춰보고,
+    안 되면 공백·대괄호를 지운 정규화 문자열로 포함 관계를 본다.
+    """
+    name = (name or "").strip()
+    for p in prods:                                    # ① alias 완전 일치
+        if name in (p.get("aliases") or []):
+            return p["product_no"]
+    def key(s):                                        # 모듈의 norm() 과 다른 것이다
+        return re.sub(r"[\s\[\]()·+&]", "", s or "")
+    n = key(name)
+    for p in prods:                                    # ② 정규화 포함 관계
+        for cand in [p["name"]] + (p.get("aliases") or []):
+            c = key(cand)
+            if c and (c in n or n in c):
+                return p["product_no"]
+    return None
+
+
 def sync_csv(path):
     """엑셀 내보내기 CSV 병합. 상품명으로 product_no 를 되찾는다."""
-    by_name = {p["name"]: p["product_no"] for p in products()}
+    prods = products()
     by_id = {r["id"]: r for r in load_store()}
     new, updated, unmatched = 0, 0, set()
+    skipped = 0
     with open(path, encoding="utf-8-sig", newline="") as f:
         for row in csv.DictReader(f):
             rec = {k: pick(row, v) for k, v in CSV_COLS.items()}
             if not rec["content"]:
                 continue
-            pno = next((no for n, no in by_name.items()
-                        if n and n in rec["product_name"]), None)
+            if any(x in rec["product_name"] for x in CSV_EXCLUDE):
+                skipped += 1
+                continue
+            pno = resolve_product(rec["product_name"], prods)
             if pno is None:
                 unmatched.add(rec["product_name"])
             rid = rec["id"]
+            if not rid:
+                # 리뷰번호가 없으면 id 로 중복을 가릴 수 없다. 리뷰 절반이 정형문구라
+                # 본문으로 중복을 판정하면 서로 다른 사람의 리뷰가 지워진다.
+                raise SystemExit(
+                    "리뷰번호(리뷰ID) 컬럼이 없다. 엑셀 내보내기에서 리뷰번호를 포함해 "
+                    "재신청해야 한다 — 본문만으로는 중복을 가릴 수 없다.")
             fields = {"product_no": pno, "product_name": rec["product_name"],
                       "ratings": rec["ratings"] or None, "content": rec["content"],
                       "option": rec["option"], "date": rec["date"][:10],
@@ -204,9 +239,11 @@ def sync_csv(path):
             else:
                 by_id[rid] = {"id": rid, **fields}; new += 1
     save_store(list(by_id.values()))
+    if skipped:
+        print(f"  제외 {skipped}건 (제품 리뷰가 아닌 항목)")
     if unmatched:
-        print(f"  ⚠ 상품 매칭 실패 {len(unmatched)}종 — products.json 에 추가 필요:")
-        for u in sorted(unmatched)[:10]:
+        print(f"  ⚠ 상품 매칭 실패 {len(unmatched)}종 — products.json 의 aliases 에 추가:")
+        for u in sorted(unmatched)[:12]:
             print(f"      {u}")
     return new, updated, len(by_id)
 

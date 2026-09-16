@@ -179,7 +179,8 @@ def build(domain, out):
         (groups[p["slug"]] if p else orphans).append(r)
 
     all_urls, hub, flagged = [f"https://{domain}/"], [], []
-    for pno, p in sorted(prods.items(), key=lambda kv: kv[0]):
+    # product_no 오름차순. 단 기획전 그룹(음수 product_no)은 맨 뒤로 보낸다.
+    for pno, p in sorted(prods.items(), key=lambda kv: (kv[0] < 0, kv[0])):
         rows = groups.get(p["slug"])
         if not rows:
             continue

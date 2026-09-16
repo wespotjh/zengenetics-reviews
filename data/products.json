@@ -1,12 +1,71 @@
 [
-  {"product_no": 11,  "slug": "potassium",         "name": "젠제네틱스 포타슘 칼륨 (20ea)"},
-  {"product_no": 13,  "slug": "vitaminb",          "name": "젠제네틱스 비타민B컴플렉스 (20ea)"},
-  {"product_no": 16,  "slug": "magnesium",         "name": "젠제네틱스 마그네슘 (20ea)"},
-  {"product_no": 60,  "slug": "daypack-potassium", "name": "젠제네틱스 포타슘 칼륨 데이팩(6ea)"},
-  {"product_no": 61,  "slug": "daypack-magnesium", "name": "젠제네틱스 마그네슘 데이팩(6ea)"},
-  {"product_no": 62,  "slug": "daypack-vitaminb",  "name": "젠제네틱스 비타민B컴플렉스 데이팩(6ea)"},
-  {"product_no": 63,  "slug": "set-swell",         "name": "붓기 부스터 칼륨(2box) & 비타민B컴플렉스(1box) SET"},
-  {"product_no": 64,  "slug": "set-performance",   "name": "퍼포먼스 부스터 마그네슘(1box) & 비타민B컴플렉스(1box) SET"},
-  {"product_no": 71,  "slug": "first-buy",         "name": "칼륨/마그네슘/비타민B컴플렉스 생애 첫 구매 EVENT"},
-  {"product_no": 98,  "slug": "set-kmb",           "name": "칼마비 건강루틴 칼륨·마그네슘·비타민B컴플렉스 SET"}
+  {
+    "product_no": 11, "slug": "potassium",
+    "name": "젠제네틱스 포타슘 칼륨 (20ea)",
+    "aliases": ["젠제네틱스 포타슘 칼륨 (20ea)"]
+  },
+  {
+    "product_no": 13, "slug": "vitaminb",
+    "name": "젠제네틱스 비타민B컴플렉스 (20ea)",
+    "aliases": ["젠제네틱스 비타민B컴플렉스 (20ea)",
+                "[비타민B컴플렉스] 생애 첫 구매 EVENT"]
+  },
+  {
+    "product_no": 16, "slug": "magnesium",
+    "name": "젠제네틱스 마그네슘 (20ea)",
+    "aliases": ["젠제네틱스 마그네슘 (20ea)",
+                "[마그네슘] 생애 첫 구매 EVENT"]
+  },
+  {
+    "product_no": 60, "slug": "daypack-potassium",
+    "name": "젠제네틱스 포타슘 칼륨 데이팩(6ea)",
+    "aliases": ["젠제네틱스 포타슘 칼륨 데이팩(6ea)",
+                "젠제네틱스 포타슘 칼륨 데이팩 (6ea)"]
+  },
+  {
+    "product_no": 61, "slug": "daypack-magnesium",
+    "name": "젠제네틱스 마그네슘 데이팩(6ea)",
+    "aliases": ["젠제네틱스 마그네슘 데이팩(6ea)",
+                "젠제네틱스 마그네슘 데이팩 (6ea)"]
+  },
+  {
+    "product_no": 62, "slug": "daypack-vitaminb",
+    "name": "젠제네틱스 비타민B컴플렉스 데이팩(6ea)",
+    "aliases": ["젠제네틱스 비타민B컴플렉스 데이팩(6ea)",
+                "젠제네틱스 비타민B컴플렉스 데이팩 (6ea)"]
+  },
+  {
+    "product_no": 63, "slug": "set-swell",
+    "name": "붓기 부스터 칼륨(2box) & 비타민B컴플렉스(1box) SET",
+    "aliases": ["[설인아 PICK] 붓기 부스터 젠제네틱스 칼륨(2box) & 비타민B컴플렉스(1box) SET"]
+  },
+  {
+    "product_no": 64, "slug": "set-performance",
+    "name": "퍼포먼스 부스터 마그네슘(1box) & 비타민B컴플렉스(1box) SET",
+    "aliases": ["[퍼포먼스 부스터] 젠제네틱스 마그네슘(1box) & 비타민B컴플렉스(1box) SET"]
+  },
+  {
+    "product_no": 71, "slug": "first-buy",
+    "name": "칼륨/마그네슘/비타민B컴플렉스 생애 첫 구매 EVENT",
+    "aliases": ["[젠제네틱스] 칼륨/마그네슘/비타민B컴플렉스 생애 첫 구매 EVENT"]
+  },
+  {
+    "product_no": 98, "slug": "set-kmb",
+    "name": "칼마비 건강루틴 칼륨·마그네슘·비타민B컴플렉스 SET",
+    "aliases": ["[칼마비 건강루틴] 젠제네틱스 칼륨 + 마그네슘 + 비타민B컴플렉스 SET"]
+  },
+
+  {
+    "product_no": -1, "slug": "promo",
+    "name": "기획전·이벤트 구매 후기",
+    "note": "종료된 기획전 리뷰. 어느 제품인지 상품명으로 특정할 수 없어 별도로 묶는다. 특정 제품 페이지에 얹으면 사실과 다르다.",
+    "aliases": ["[1년 최저 특가] 블랙프라이데이 얼리버드 기획전",
+                "[설맞이 70%할인] 젠제네틱스 설맞이 특별 감사제",
+                "[송아름 X 젠제네틱스] 프리미엄 필수 미네랄 젠제네틱스",
+                "[연말 감사제] 젠제네틱스 윈터세일",
+                "[SUMMER V FESTA] 젠제네틱스 여름맞이 HOT event",
+                "[올리브영 1등 기념 60%할인] 젠제네틱스 올리브영 1등 기념 특별 감사제",
+                "[재구매 반값 EVENT] 전품목 50% OFF",
+                "[추석 70%할인] 젠제네틱스 한가위 특별 감사제"]
+  }
 ]
