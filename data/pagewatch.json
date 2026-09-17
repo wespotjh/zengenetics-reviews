@@ -1,0 +1,82 @@
+{
+  "11": {
+    "alt": 14,
+    "faq_jsonld": 0,
+    "faq_micro": 0,
+    "images": 14,
+    "korean": 2990,
+    "review_link": 1
+  },
+  "13": {
+    "alt": 15,
+    "faq_jsonld": 0,
+    "faq_micro": 0,
+    "images": 15,
+    "korean": 3554,
+    "review_link": 1
+  },
+  "16": {
+    "alt": 16,
+    "faq_jsonld": 0,
+    "faq_micro": 0,
+    "images": 16,
+    "korean": 3324,
+    "review_link": 1
+  },
+  "60": {
+    "alt": 14,
+    "faq_jsonld": 3,
+    "faq_micro": 0,
+    "images": 14,
+    "korean": 2428,
+    "review_link": 1
+  },
+  "61": {
+    "alt": 16,
+    "faq_jsonld": 3,
+    "faq_micro": 0,
+    "images": 16,
+    "korean": 2580,
+    "review_link": 1
+  },
+  "62": {
+    "alt": 15,
+    "faq_jsonld": 3,
+    "faq_micro": 0,
+    "images": 15,
+    "korean": 2672,
+    "review_link": 1
+  },
+  "63": {
+    "alt": 25,
+    "faq_jsonld": 5,
+    "faq_micro": 0,
+    "images": 25,
+    "korean": 4251,
+    "review_link": 1
+  },
+  "64": {
+    "alt": 27,
+    "faq_jsonld": 5,
+    "faq_micro": 0,
+    "images": 27,
+    "korean": 4323,
+    "review_link": 1
+  },
+  "71": {
+    "alt": 19,
+    "faq_jsonld": 5,
+    "faq_micro": 0,
+    "images": 19,
+    "korean": 4451,
+    "review_link": 1
+  },
+  "98": {
+    "alt": 15,
+    "faq_jsonld": 5,
+    "faq_micro": 0,
+    "images": 15,
+    "korean": 4133,
+    "review_link": 1
+  }
+}

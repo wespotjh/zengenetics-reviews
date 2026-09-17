@@ -12,6 +12,7 @@ on:
     paths:
       - "_sync.py"
       - "_build.py"
+      - "_watch.py"
       - "data/**"
       - ".github/workflows/reviews.yml"
 
@@ -75,3 +76,30 @@ jobs:
           path: dist
       - id: deploy
         uses: actions/deploy-pages@v4
+
+      # 카페24가 상세설명의 <script> 를 하룻밤 뒤 제거한 일이 있었다.
+      # 지표가 줄어들면 런을 실패로 남겨 사람이 눈으로 볼 때까지 모르는 상황을 막는다.
+      # 배포 뒤에 두어 감시 실패가 사이트 배포를 막지 않게 한다.
+      - name: 상품 페이지 감시
+        id: watch
+        continue-on-error: true
+        run: python3 _watch.py
+
+      - name: 감시 기준선 커밋
+        run: |
+          if [ -n "$(git status --porcelain data/pagewatch.json)" ]; then
+            git config user.name  "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git pull --rebase --autostash
+            git add data/pagewatch.json
+            git commit -m "상품 페이지 감시 기준선 ($(date -u +%Y-%m-%d))"
+            git push
+          else
+            echo "지표 변화 없음 — 커밋 생략"
+          fi
+
+      - name: 감시 결과 반영
+        if: steps.watch.outcome == 'failure'
+        run: |
+          echo "상품 페이지 지표가 하락했습니다. 위 '상품 페이지 감시' 로그를 확인하세요."
+          exit 1
