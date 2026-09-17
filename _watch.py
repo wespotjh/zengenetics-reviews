@@ -18,12 +18,26 @@ import json, os, re, sys, time, html, urllib.request
 BASE = "https://zengenetics.co.kr/product/detail.html?product_no="
 STATE = "data/pagewatch.json"
 
-# product_no → (이름, 기대 이미지 수). 이미지 수는 사고가 났던 지표라 고정값으로 둔다.
+# product_no → (이름, 기대 이미지 수, 기대 질문 수, 본문에 반드시 있어야 하는 문구).
+#
+# 기대값을 고정해 두는 이유: 지난 기준선과만 비교하면 한 번 망가진 값이 새 기준선이
+# 되어 그 뒤로는 계속 "정상"이 된다. 실제로 마그네슘 본편(16)에 데이팩 파일이
+# 붙여진 것을 감시가 한 번 잡은 뒤, 고장난 값이 기준선이 되어 다음 실행에서
+# 통과시켜 버렸다.
+#
+# 마커는 그 상품에만 있는 문구다. 16과 61은 이미지가 둘 다 16개여서 개수로는
+# 구분되지 않고, 파일을 서로 바꿔 붙이면 마커로만 잡힌다.
 PRODUCTS = [
-    (11, "칼륨 (20ea)", 14), (16, "마그네슘 (20ea)", 16), (13, "비타민B (20ea)", 15),
-    (63, "붓기부스터 SET", 25), (64, "퍼포먼스 SET", 27), (98, "칼마비 SET", 15),
-    (60, "칼륨 데이팩", 14), (61, "마그네슘 데이팩", 16), (62, "비타민B 데이팩", 15),
-    (71, "생애첫구매", 19),
+    (11, "칼륨 (20ea)",     14, 5, "왜 붓기 관리에 칼륨이 좋은가요?"),
+    (16, "마그네슘 (20ea)",  16, 5, "운동하는 날만 먹어도 되나요?"),
+    (13, "비타민B (20ea)",   15, 5, "언제 먹는게 가장 좋은가요?"),
+    (63, "붓기부스터 SET",    25, 5, "칼륨이 2박스인 이유가 있나요?"),
+    (64, "퍼포먼스 SET",     27, 5, "마그네슘과 비타민B를 왜 같이 먹나요?"),
+    (98, "칼마비 SET",       15, 5, "세 가지를 같이 먹는 이유가 뭔가요?"),
+    (60, "칼륨 데이팩",       14, 3, "칼륨은 1일 2회 1회 1포 섭취라 6포는 3일분입니다"),
+    (61, "마그네슘 데이팩",    16, 3, "마그네슘은 1일 1회 1포 섭취라 6포는 6일분입니다"),
+    (62, "비타민B 데이팩",    15, 3, "비타민B컴플렉스는 1일 1회 1포 섭취라 6포는 6일분입니다"),
+    (71, "생애첫구매",        19, 5, "어떤 걸 고르면 되나요?"),
 ]
 
 # 줄어들면 안 되는 지표. 늘어나는 건 작업이 반영된 것이므로 기준선을 올린다.
@@ -65,6 +79,7 @@ def measure(s):
     txt = html.unescape(re.sub(r"<[^>]+>", " ", txt))
     alts = " ".join(html.unescape(a) for a in re.findall(r'alt="([^"]*)"', seg))
     return {
+        "_text": txt + " " + alts,
         "images": len(imgs),
         "alt": sum(1 for t in imgs if "alt=" in t),
         "faq_jsonld": jsonld,
@@ -81,7 +96,7 @@ def main():
     print(f"{'no':>3}  {'상품':<16} {'이미지':>9} {'alt':>7} {'JSON-LD':>9} "
           f"{'micro':>7} {'한글':>8}")
     print("-" * 68)
-    for no, name, want_img in PRODUCTS:
+    for no, name, want_img, want_q, marker in PRODUCTS:
         key = str(no)
         try:
             m = measure(fetch(no))
@@ -89,6 +104,7 @@ def main():
             problems.append(f"{no} {name}: 조회 실패 — {e}")
             print(f"{no:>3}  {name:<16} 조회 실패")
             continue
+        text = m.pop("_text")
         cur[key] = m
         old = prev.get(key, {})
 
@@ -99,6 +115,16 @@ def main():
             flags.append(f"alt {m['alt']}/{m['images']}")
         if not m["review_link"]:
             flags.append("리뷰 링크 없음")
+        # 기대 질문 수 — 기준선과 무관하게 절대값으로 본다
+        if m["faq_micro"] != want_q:
+            flags.append(f"마이크로데이터 질문 {m['faq_micro']}개 (기대 {want_q})")
+        # 마커 — 다른 상품의 파일이 붙여졌는지 잡는다
+        if marker not in text:
+            flags.append(f"이 상품 고유 문구 없음: {marker!r}")
+        if "(주)위스팟바이오랩" not in text:
+            flags.append("회사명 (주)위스팟바이오랩 표기 없음")
+        if re.search(r"위스팟(?!바이오랩)", text):
+            flags.append("구 회사명 표기 잔존")
         for k in METRICS:
             if k in old and m[k] < old[k]:
                 flags.append(f"{k} {old[k]}→{m[k]} 감소")
