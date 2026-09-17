@@ -8,30 +8,53 @@
   <p style="color:#93959D;font-size:12.5px;margin:0 0 30px">마그네슘·비타민B컴플렉스는 건강기능식품이며 기능성 내용은 마그네슘 : 에너지 이용에 필요, 신경과 근육 기능 유지에 필요 / 비타민B1 : 탄수화물과 에너지 대사에 필요 / 비타민B2 : 체내 에너지 생성에 필요 / 비타민B6 : 단백질 및 아미노산 이용에 필요, 혈액의 호모시스테인 수준을 정상으로 유지하는데 필요 / 비타민B12 : 정상적인 엽산 대사에 필요. 칼륨 제품의 식품유형은 당류가공품이며 건강기능식품이 아닙니다. 본 제품은 질병의 예방 및 치료를 위한 의약품이 아닙니다.</p>
 
   <h2 style="font-size:19px;margin:0 0 18px">자주 묻는 질문</h2>
+<div itemscope itemtype="https://schema.org/FAQPage">
 
-  <div style="border-top:1px solid #E9E8E4;padding:16px 0">
-    <h3 style="font-size:15.5px;margin:0 0 6px">세 가지를 같이 먹는 이유가 뭔가요?</h3>
+  <div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question" style="border-top:1px solid #E9E8E4;padding:16px 0">
+    <h3 itemprop="name" style="font-size:15.5px;margin:0 0 6px">세 가지를 같이 먹는 이유가 뭔가요?</h3>
+    <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+      <div itemprop="text">
     <p style="margin:0;color:#3F4149">칼륨으로 나트륨 배출을, 마그네슘으로 신경과 근육 기능 유지를, 비타민B컴플렉스로 에너지 생성과 대사를 함께 챙기는 하루 루틴 구성입니다.</p>
+      </div>
+    </div>
   </div>
 
-  <div style="border-top:1px solid #E9E8E4;padding:16px 0">
-    <h3 style="font-size:15.5px;margin:0 0 6px">세 개를 하루에 다 먹어도 되나요?</h3>
+  <div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question" style="border-top:1px solid #E9E8E4;padding:16px 0">
+    <h3 itemprop="name" style="font-size:15.5px;margin:0 0 6px">세 개를 하루에 다 먹어도 되나요?</h3>
+    <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+      <div itemprop="text">
     <p style="margin:0;color:#3F4149">네. 칼륨은 1일 2회 1회 1포, 마그네슘과 비타민B컴플렉스는 각각 1일 1회 1포입니다. 모두 물 없이 먹는 분말 스틱입니다.</p>
+      </div>
+    </div>
   </div>
 
-  <div style="border-top:1px solid #E9E8E4;padding:16px 0">
-    <h3 style="font-size:15.5px;margin:0 0 6px">어떻게 나눠 먹으면 되나요?</h3>
+  <div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question" style="border-top:1px solid #E9E8E4;padding:16px 0">
+    <h3 itemprop="name" style="font-size:15.5px;margin:0 0 6px">어떻게 나눠 먹으면 되나요?</h3>
+    <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+      <div itemprop="text">
     <p style="margin:0;color:#3F4149">비타민B컴플렉스는 아침, 마그네슘은 저녁 루틴으로 설계되었습니다. 칼륨은 아침 얼굴이 붓는 타입은 자기 전과 기상 직후, 저녁 종아리가 붓는 타입은 출근 전과 오후 3시를 권합니다.</p>
+      </div>
+    </div>
   </div>
 
-  <div style="border-top:1px solid #E9E8E4;padding:16px 0">
-    <h3 style="font-size:15.5px;margin:0 0 6px">칼륨도 건강기능식품인가요?</h3>
+  <div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question" style="border-top:1px solid #E9E8E4;padding:16px 0">
+    <h3 itemprop="name" style="font-size:15.5px;margin:0 0 6px">칼륨도 건강기능식품인가요?</h3>
+    <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+      <div itemprop="text">
     <p style="margin:0;color:#3F4149">아닙니다. 마그네슘과 비타민B컴플렉스는 건강기능식품이고, 칼륨의 식품유형은 당류가공품입니다.</p>
+      </div>
+    </div>
   </div>
 
-  <div style="border-top:1px solid #E9E8E4;padding:16px 0">
-    <h3 style="font-size:15.5px;margin:0 0 6px">주의해야 할 사람이 있나요?</h3>
+  <div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question" style="border-top:1px solid #E9E8E4;padding:16px 0">
+    <h3 itemprop="name" style="font-size:15.5px;margin:0 0 6px">주의해야 할 사람이 있나요?</h3>
+    <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+      <div itemprop="text">
     <p style="margin:0;color:#3F4149">마그네슘은 신장 질환이 있거나 신장 기능이 저하된 분은 전문가와 상담 후 섭취를 권하며, 임신·수유 중에는 전문의와 상담 후 섭취하시길 권장드립니다.</p>
+      </div>
+    </div>
+  </div>
+
   </div>
 
   <h2 style="font-size:19px;margin:40px 0 14px">구성 및 제품정보</h2>

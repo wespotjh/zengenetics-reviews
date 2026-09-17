@@ -8,20 +8,35 @@
   <p style="color:#93959D;font-size:12.5px;margin:0 0 30px">본 제품은 건강기능식품이며 질병의 예방 및 치료를 위한 의약품이 아닙니다. 이상사례 신고는 1577-2488.</p>
 
   <h2 style="font-size:19px;margin:0 0 18px">자주 묻는 질문</h2>
+<div itemscope itemtype="https://schema.org/FAQPage">
 
-  <div style="border-top:1px solid #E9E8E4;padding:16px 0">
-    <h3 style="font-size:15.5px;margin:0 0 6px">데이팩 6포는 며칠분인가요?</h3>
+  <div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question" style="border-top:1px solid #E9E8E4;padding:16px 0">
+    <h3 itemprop="name" style="font-size:15.5px;margin:0 0 6px">데이팩 6포는 며칠분인가요?</h3>
+    <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+      <div itemprop="text">
     <p style="margin:0;color:#3F4149">마그네슘은 1일 1회 1포 섭취라 6포는 6일분입니다. 20포 정품은 20일분입니다.</p>
+      </div>
+    </div>
   </div>
 
-  <div style="border-top:1px solid #E9E8E4;padding:16px 0">
-    <h3 style="font-size:15.5px;margin:0 0 6px">20포 제품과 내용이 다른가요?</h3>
+  <div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question" style="border-top:1px solid #E9E8E4;padding:16px 0">
+    <h3 itemprop="name" style="font-size:15.5px;margin:0 0 6px">20포 제품과 내용이 다른가요?</h3>
+    <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+      <div itemprop="text">
     <p style="margin:0;color:#3F4149">같습니다. 1포당 마그네슘 400mg(1일 영양성분 기준치의 127%), 원재료와 제조원 모두 동일하며 포수만 다릅니다.</p>
+      </div>
+    </div>
   </div>
 
-  <div style="border-top:1px solid #E9E8E4;padding:16px 0">
-    <h3 style="font-size:15.5px;margin:0 0 6px">주의해야 할 사람이 있나요?</h3>
+  <div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question" style="border-top:1px solid #E9E8E4;padding:16px 0">
+    <h3 itemprop="name" style="font-size:15.5px;margin:0 0 6px">주의해야 할 사람이 있나요?</h3>
+    <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+      <div itemprop="text">
     <p style="margin:0;color:#3F4149">신장 질환이 있거나 신장 기능이 저하된 분은 전문가와 상담 후 섭취를 권장드립니다.</p>
+      </div>
+    </div>
+  </div>
+
   </div>
 
   <h2 style="font-size:19px;margin:40px 0 14px">구성 및 제품정보</h2>

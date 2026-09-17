@@ -8,20 +8,35 @@
   <p style="color:#93959D;font-size:12.5px;margin:0 0 30px">본 제품의 식품유형은 당류가공품이며 건강기능식품이 아닙니다. 본 제품은 질병의 예방 및 치료를 위한 의약품이 아닙니다.</p>
 
   <h2 style="font-size:19px;margin:0 0 18px">자주 묻는 질문</h2>
+<div itemscope itemtype="https://schema.org/FAQPage">
 
-  <div style="border-top:1px solid #E9E8E4;padding:16px 0">
-    <h3 style="font-size:15.5px;margin:0 0 6px">데이팩 6포는 며칠분인가요?</h3>
+  <div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question" style="border-top:1px solid #E9E8E4;padding:16px 0">
+    <h3 itemprop="name" style="font-size:15.5px;margin:0 0 6px">데이팩 6포는 며칠분인가요?</h3>
+    <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+      <div itemprop="text">
     <p style="margin:0;color:#3F4149">칼륨은 1일 2회 1회 1포 섭취라 6포는 3일분입니다. 20포 정품은 10일분입니다.</p>
+      </div>
+    </div>
   </div>
 
-  <div style="border-top:1px solid #E9E8E4;padding:16px 0">
-    <h3 style="font-size:15.5px;margin:0 0 6px">20포 제품과 내용이 다른가요?</h3>
+  <div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question" style="border-top:1px solid #E9E8E4;padding:16px 0">
+    <h3 itemprop="name" style="font-size:15.5px;margin:0 0 6px">20포 제품과 내용이 다른가요?</h3>
+    <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+      <div itemprop="text">
     <p style="margin:0;color:#3F4149">같습니다. 1포당 칼륨 262.5mg, 원재료와 제조원 모두 동일하며 포수만 다릅니다.</p>
+      </div>
+    </div>
   </div>
 
-  <div style="border-top:1px solid #E9E8E4;padding:16px 0">
-    <h3 style="font-size:15.5px;margin:0 0 6px">어떻게 먹나요?</h3>
+  <div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question" style="border-top:1px solid #E9E8E4;padding:16px 0">
+    <h3 itemprop="name" style="font-size:15.5px;margin:0 0 6px">어떻게 먹나요?</h3>
+    <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+      <div itemprop="text">
     <p style="margin:0;color:#3F4149">1일 2회 1회 1포입니다. 아침 얼굴이 붓는 타입은 자기 전 1포와 기상 직후 1포, 저녁 종아리가 붓는 타입은 출근 전 1포와 오후 3시 1포를 권합니다. 물 없이 먹는 분말 스틱입니다.</p>
+      </div>
+    </div>
+  </div>
+
   </div>
 
   <h2 style="font-size:19px;margin:40px 0 14px">구성 및 제품정보</h2>

@@ -8,20 +8,35 @@
   <p style="color:#93959D;font-size:12.5px;margin:0 0 30px">본 제품은 건강기능식품이며 질병의 예방 및 치료를 위한 의약품이 아닙니다. 이상사례 신고는 1577-2488.</p>
 
   <h2 style="font-size:19px;margin:0 0 18px">자주 묻는 질문</h2>
+<div itemscope itemtype="https://schema.org/FAQPage">
 
-  <div style="border-top:1px solid #E9E8E4;padding:16px 0">
-    <h3 style="font-size:15.5px;margin:0 0 6px">데이팩 6포는 며칠분인가요?</h3>
+  <div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question" style="border-top:1px solid #E9E8E4;padding:16px 0">
+    <h3 itemprop="name" style="font-size:15.5px;margin:0 0 6px">데이팩 6포는 며칠분인가요?</h3>
+    <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+      <div itemprop="text">
     <p style="margin:0;color:#3F4149">비타민B컴플렉스는 1일 1회 1포 섭취라 6포는 6일분입니다. 20포 정품은 20일분입니다.</p>
+      </div>
+    </div>
   </div>
 
-  <div style="border-top:1px solid #E9E8E4;padding:16px 0">
-    <h3 style="font-size:15.5px;margin:0 0 6px">20포 제품과 내용이 다른가요?</h3>
+  <div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question" style="border-top:1px solid #E9E8E4;padding:16px 0">
+    <h3 itemprop="name" style="font-size:15.5px;margin:0 0 6px">20포 제품과 내용이 다른가요?</h3>
+    <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+      <div itemprop="text">
     <p style="margin:0;color:#3F4149">같습니다. 1포당 비타민B1 3.6mg·B2 4.2mg·B6 4.5mg·B12 7.2µg(각 1일 영양성분 기준치의 300%), 원재료와 제조원 모두 동일하며 포수만 다릅니다.</p>
+      </div>
+    </div>
   </div>
 
-  <div style="border-top:1px solid #E9E8E4;padding:16px 0">
-    <h3 style="font-size:15.5px;margin:0 0 6px">섭취 후 소변이 노랗게 변했는데 괜찮은건가요?</h3>
+  <div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question" style="border-top:1px solid #E9E8E4;padding:16px 0">
+    <h3 itemprop="name" style="font-size:15.5px;margin:0 0 6px">섭취 후 소변이 노랗게 변했는데 괜찮은건가요?</h3>
+    <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+      <div itemprop="text">
     <p style="margin:0;color:#3F4149">비타민B2의 영향으로 소변의 색이 변할 수 있습니다. 수용성 비타민이 배출되며 나타나는 자연스러운 현상입니다.</p>
+      </div>
+    </div>
+  </div>
+
   </div>
 
   <h2 style="font-size:19px;margin:40px 0 14px">구성 및 제품정보</h2>
