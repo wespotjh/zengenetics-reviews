@@ -57,7 +57,7 @@
       <tr><th style="text-align:left;vertical-align:top;padding:9px 12px 9px 0;border-top:1px solid #E9E8E4;font-weight:600">제조원</th>
           <td style="padding:9px 0;border-top:1px solid #E9E8E4">콜마비앤에이치(주) 세종 3공장 · 세종특별자치시 전의면 미래산단로 89</td></tr>
       <tr><th style="text-align:left;vertical-align:top;padding:9px 12px 9px 0;border-top:1px solid #E9E8E4;font-weight:600">판매원</th>
-          <td style="padding:9px 0;border-top:1px solid #E9E8E4">(주)위스팟 · 서울특별시 강남구 강남대로 464, 416호</td></tr>
+          <td style="padding:9px 0;border-top:1px solid #E9E8E4">(주)위스팟바이오랩 · 서울특별시 강남구 강남대로 464, 416호</td></tr>
       <tr><th style="text-align:left;vertical-align:top;padding:9px 12px 9px 0;border-top:1px solid #E9E8E4;font-weight:600">소비자 상담실</th>
           <td style="padding:9px 0;border-top:1px solid #E9E8E4">070-8800-1337</td></tr>
     </tbody>
