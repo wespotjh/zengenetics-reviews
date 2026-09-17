@@ -191,12 +191,34 @@ def backfill_api(product_no, delay=0.5):
 CSV_EXCLUDE = ("BPC 시즌3 참가신청",)
 
 CSV_COLS = {"id": ("리뷰번호", "리뷰ID", "리뷰no", "번호", "id"),
-            "ratings": ("평점", "별점", "만족도", "rating"),
+            "ratings": ("리뷰평점", "평점", "별점", "만족도", "rating"),
             "content": ("리뷰내용", "리뷰본문", "내용", "본문", "content"),
-            "date": ("작성일", "등록일", "작성일시", "date"),
+            "date": ("리뷰작성일시", "작성일시", "작성일", "등록일", "date"),
             "product_name": ("상품명", "상품", "product"),
-            "option": ("옵션", "상품옵션", "option"),
-            "author": ("작성자ID", "작성자", "작성자명")}
+            "product_code": ("상품코드",),
+            "option": ("구매옵션", "옵션", "상품옵션", "option"),
+            "author": ("작성자ID", "작성자명", "작성자")}
+
+
+def norm_date(s):
+    """엑셀 작성일시 → YYYY-MM-DD.
+
+    알파리뷰 내보내기는 `25-09-01 20:02` 처럼 두 자리 연도로 준다. 그대로 앞 10자를
+    잘라 쓰면 `25-09-01` 이 되어 연도가 깨진다. 네 자리 연도 형식도 함께 받는다.
+    """
+    s = (s or "").strip()
+    if not s:
+        return ""
+    m = re.match(r"(\d{4})[-./](\d{1,2})[-./](\d{1,2})", s)
+    if m:
+        y, mo, d = m.groups()
+    else:
+        m = re.match(r"(\d{2})[-./](\d{1,2})[-./](\d{1,2})", s)
+        if not m:
+            return ""
+        y, mo, d = m.groups()
+        y = f"20{y}"
+    return f"{y}-{int(mo):02d}-{int(d):02d}"
 
 
 def pick(row, names):
@@ -282,8 +304,8 @@ def sync_csv(path):
             fields = {"product_no": pno, "product_name": rec["product_name"],
                       "ratings": rec["ratings"] or None, "content": rec["content"],
                       "option": rec["option"],
-                      "date": rec["date"][:10] if rec["date"] else "",
-                      "date_estimated": not bool(rec["date"])}
+                      "date": norm_date(rec["date"]),
+                      "date_estimated": not bool(norm_date(rec["date"]))}
             if rid in by_id:
                 keep = by_id[rid].get("seq")
                 by_id[rid].update(fields)

@@ -19,7 +19,7 @@
 
 사용: python3 _build.py [--domain review.zengenetics.co.kr] [--out dist]
 """
-import argparse, csv, html, json, os, re
+import argparse, csv, html, json, os, re, shutil
 from collections import defaultdict
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -90,6 +90,7 @@ margin:0;color:#15161A;background:#fff}
 .w{max-width:760px;margin:0 auto;padding:24px 20px 64px}
 .awards{margin:10px 0 4px;padding-left:20px;font-weight:600}
 .basis{margin:0 0 14px;font-size:12.5px;color:#93959D}
+.agg{margin:6px 0 2px;font-size:15px;color:#15161A}
 a{color:#1A2B6B}
 h1{font-size:20px;margin:0 0 4px;line-height:1.35}
 .sub{color:#5F626C;font-size:14px;margin:0 0 24px}
@@ -171,12 +172,75 @@ def review_li(r):
             f'itemtype="https://schema.org/Rating">평점 '
             f'<span itemprop="ratingValue">{esc(rating)}</span></span>') if rating else ""
     opt = f'<div class="rv-o">{esc(r["option"])}</div>' if r.get("option") else ""
+    day = f'<span itemprop="datePublished" content="{esc(dt)}">{esc(dt)}</span>' if dt else ""
     return (f'<li class="rv" itemscope itemtype="https://schema.org/Review">'
-            f'<div class="rv-h"><span>{rate}</span><span>{esc(dt)}</span></div>'
+            f'<div class="rv-h"><span>{rate}</span><span>{day}</span></div>'
             f'<div class="rv-b" itemprop="reviewBody">{body}</div>{opt}</li>')
 
 
+def dedupe(rows):
+    """같은 본문은 한 번만 게시한다.
+
+    스토어에는 원본을 전부 남기지만, 사이트에는 같은 문장을 반복해 올리지 않는다.
+    이유 두 가지:
+      1) 간편리뷰 프리셋 때문에 서로 다른 고객이 같은 문장을 고르는 일이 많다.
+         같은 문장을 100번 올려도 크롤러에게는 새 정보가 0이고, 중복 콘텐츠가 된다.
+      2) 엑셀 내보내기와 위젯 API 의 리뷰 식별자 체계가 다르다(엑셀 `1008nJZbHNq`,
+         API `78633090`). id 로는 같은 리뷰를 걸러낼 수 없어 본문으로 겹침을 막는다.
+
+    남기는 것은 그 본문의 **가장 이른 작성일** 레코드다. 평점이 있는 쪽을 우선한다.
+    """
+    best = {}
+    for r in rows:
+        k = (r.get("content") or "").strip()
+        cur = best.get(k)
+        if cur is None:
+            best[k] = r
+            continue
+        # 평점 보유 > 이른 작성일 > 낮은 seq
+        def rank(x):
+            return (0 if x.get("ratings") else 1,
+                    x.get("date") or "9999-99-99",
+                    x.get("seq") or 0)
+        if rank(r) < rank(cur):
+            best[k] = r
+    out = list(best.values())
+    out.sort(key=lambda r: r.get("seq") or 0)
+    return out
+
+
+def aggregate_ld(name, rows):
+    """제품 단위 AggregateRating.
+
+    카페24가 상품 페이지에 내보내는 reviewCount 는 419 로 고정되어 실제와 다르다.
+    그 JSON-LD 는 우리가 고칠 수 없으므로, 리뷰 사이트에서 실제 집계를 따로 낸다.
+    평점이 있는 레코드만 센다 — 없는 것을 세면 평균이 왜곡된다.
+    """
+    vals = [int(r["ratings"]) for r in rows
+            if str(r.get("ratings") or "").strip().isdigit()]
+    if len(vals) < 1:
+        return None
+    return {"@type": "AggregateRating",
+            "ratingValue": round(sum(vals) / len(vals), 2),
+            "reviewCount": len(vals),
+            "bestRating": 5, "worstRating": 1}
+
+
+def agg_html(agg):
+    """평균 평점을 화면에도 낸다. 마이크로데이터는 화면에 보이는 값에만 붙인다."""
+    if not agg:
+        return ""
+    return (f'<p class="agg" itemprop="aggregateRating" itemscope '
+            f'itemtype="https://schema.org/AggregateRating">'
+            f'평균 <strong itemprop="ratingValue">{agg["ratingValue"]}</strong> / 5 · '
+            f'<span itemprop="reviewCount">{agg["reviewCount"]:,}</span>건'
+            f'<meta itemprop="bestRating" content="5">'
+            f'<meta itemprop="worstRating" content="1"></p>')
+
+
 def build_group(slug, name, rows, domain, out, prod=None):
+    rows = dedupe(rows)
+    agg = aggregate_ld(name, rows)
     pages = [rows[i:i + PER_PAGE] for i in range(0, len(rows), PER_PAGE)] or [[]]
     urls = []
     for i, chunk in enumerate(pages, 1):
@@ -193,13 +257,21 @@ def build_group(slug, name, rows, domain, out, prod=None):
                "reviewBody": r["content"][:1500]} for r in chunk if r.get("ratings")]
         # 평점이 있는 리뷰가 없으면 JSON-LD 를 아예 내보내지 않는다. 빈 ItemList 는
         # 아무 정보도 주지 않는다. 이번 내보내기에 평점 컬럼이 빠져 대부분이 여기 해당한다.
-        jsonld = json.dumps({"@context": "https://schema.org", "@type": "ItemList",
-                             "name": f"{name} 구매 후기", "numberOfItems": len(ld),
-                             "itemListElement": ld}, ensure_ascii=False) if ld else ""
+        doc = {"@context": "https://schema.org", "@type": "ItemList",
+               "name": f"{name} 구매 후기", "numberOfItems": len(ld),
+               "itemListElement": ld} if ld else None
+        # 1페이지에만 제품 단위 집계를 얹는다. 모든 페이지에 넣으면 같은 집계가
+        # 수십 번 중복 선언되어 구글이 어느 것을 믿을지 모호해진다.
+        if agg and i == 1:
+            doc = {"@context": "https://schema.org", "@type": "Product",
+                   "name": name, "aggregateRating": {k: v for k, v in agg.items()},
+                   "review": ld[:20]}
+        jsonld = json.dumps(doc, ensure_ascii=False) if doc else ""
         body = (
             f'<h1>{esc(name)} 구매 후기</h1>'
             + awards_for(prod)
             + claim_for(prod)
+            + agg_html(agg)
             + f'<p class="sub">총 {len(rows):,}건 · {i}/{len(pages)}페이지 · '
               f'구매 고객이 직접 작성한 이용후기입니다.</p>'
             + f'<ul class="rvs">{"".join(review_li(r) for r in chunk)}</ul>'
@@ -212,7 +284,7 @@ def build_group(slug, name, rows, domain, out, prod=None):
             f"{name} 구매 고객이 직접 작성한 이용후기 {len(rows):,}건 중 {i}페이지.",
             canon, body))
         urls.append(canon)
-    return urls, len(pages)
+    return urls, len(pages), len(rows)
 
 
 def build(domain, out):
@@ -225,6 +297,10 @@ def build(domain, out):
     store = json.load(open(os.path.join(DATA, "reviews.json"), encoding="utf-8"))
     prods = {p["product_no"]: p for p in
              json.load(open(os.path.join(DATA, "products.json"), encoding="utf-8"))}
+    # 매번 비우고 짓는다. 남겨두면 이전 빌드의 페이지가 그대로 배포되어,
+    # 스토어에서 빠진 리뷰가 계속 게시된다(자체작업분 정리 때 실제로 겪었다).
+    if os.path.isdir(out):
+        shutil.rmtree(out)
     os.makedirs(out, exist_ok=True)
 
     # 리뷰 자신의 product_no 로 묶는다. 어떤 리뷰도 두 번 게재되지 않는다.
@@ -242,9 +318,9 @@ def build(domain, out):
         if not rows:
             continue
         rows.sort(key=lambda r: r.get("seq") or 0)   # 스토어 진입 순서 = 페이지 경계 고정
-        urls, npages = build_group(p["slug"], p["name"], rows, domain, out, p)
+        urls, npages, shown = build_group(p["slug"], p["name"], rows, domain, out, p)
         all_urls += urls
-        hub.append((p, len(rows), npages))
+        hub.append((p, shown, npages))
         for r in rows:
             hits = [lab for lab, pat in RISK.items() if re.search(pat, r["content"])]
             if hits:
@@ -283,7 +359,6 @@ def build(domain, out):
     else:
         open(cname, "w", encoding="utf-8").write(domain + "\n")
 
-    import shutil
     for fn, path in verify_files:
         shutil.copyfile(path, os.path.join(out, fn))
 
