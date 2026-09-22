@@ -1,25 +1,25 @@
 {
   "11": {
     "alt": 14,
-    "faq_jsonld": 5,
+    "faq_jsonld": 0,
     "faq_micro": 5,
-    "images": 14,
+    "images": 15,
     "korean": 3069,
     "review_link": 1
   },
   "13": {
     "alt": 15,
-    "faq_jsonld": 5,
+    "faq_jsonld": 0,
     "faq_micro": 5,
-    "images": 15,
+    "images": 16,
     "korean": 3550,
     "review_link": 1
   },
   "16": {
     "alt": 16,
-    "faq_jsonld": 5,
+    "faq_jsonld": 0,
     "faq_micro": 5,
-    "images": 16,
+    "images": 17,
     "korean": 3328,
     "review_link": 1
   },
@@ -49,33 +49,33 @@
   },
   "63": {
     "alt": 25,
-    "faq_jsonld": 5,
+    "faq_jsonld": 0,
     "faq_micro": 5,
-    "images": 25,
+    "images": 26,
     "korean": 4259,
     "review_link": 1
   },
   "64": {
     "alt": 27,
-    "faq_jsonld": 5,
+    "faq_jsonld": 0,
     "faq_micro": 5,
-    "images": 27,
+    "images": 28,
     "korean": 4331,
     "review_link": 1
   },
   "71": {
     "alt": 19,
-    "faq_jsonld": 5,
+    "faq_jsonld": 0,
     "faq_micro": 5,
-    "images": 19,
+    "images": 20,
     "korean": 4463,
     "review_link": 1
   },
   "98": {
     "alt": 15,
-    "faq_jsonld": 5,
+    "faq_jsonld": 0,
     "faq_micro": 5,
-    "images": 15,
+    "images": 16,
     "korean": 4145,
     "review_link": 1
   }
