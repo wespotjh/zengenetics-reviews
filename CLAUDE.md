@@ -82,3 +82,32 @@
   `070-8800-1337` 로 들어가 있다. 대표님 요청으로 뒤로 미뤘다. 다음에 상세페이지를
   교체할 일이 생기면 그때 같이 고친다 — 번호만 고치려고 10개를 다시 붙여넣게 하지 않는다.
   외부로 나가는 문서(`marketing/`)는 이미 정정했다.
+
+## 구글 시트 자동 기록 — 무엇이 되고 무엇이 안 되는가 (2026-09-23 실측)
+
+구글 시트를 매일 자동 갱신하려 시도한 결과. 같은 시도를 반복하지 말 것.
+
+| 방법 | 결과 |
+|---|---|
+| Drive API 로 셀 쓰기 | **불가**. `create_file`(생성)과 `update_file`(제목·부모)만 있음. Sheets API 도구 없음 |
+| CSV `textContent` 업로드 | 시트로 변환되지만 **수식이 텍스트로 들어감**. `=IMPORTDATA(...)` 가 문자열이 됨 |
+| xlsx `base64Content` 업로드 | 수식은 **살아나지만** 변환된 시트의 격자가 작아 14열 CSV 를 받으면 `#REF!` |
+| xlsx 업로드 크기 | 17KB 성공 / 20KB·30KB 는 base64 전달 중 깨짐. **파일은 15KB 이하로 만들 것** |
+| Windsor.ai `googlesheets` 대상 | daily 스케줄 지원하나 `create_in_chat: false` → 사용자가 대시보드에서 1회 OAuth 필요 |
+
+### 채택한 구조
+
+`data/ads_daily.csv` (커밋됨, `.gitignore` 의 `*.csv` 에 예외 등록) 를
+raw.githubusercontent.com 으로 익명 공개하고, **사용자가 기존 시트 A5 에
+`=IMPORTDATA("<raw url>")` 한 줄을 직접 붙여넣는다.** 그 뒤로는 영구 자동.
+
+- 생성 스크립트: `marketing/gen_ads_csv.py` (DAILY / GA4 리스트에 조회값 추가 후 실행)
+- 익명 접근 검증 완료: `curl` 200, 해시 일치
+- 매일 09:30 KST Routine(`trig_01NqmWMVYmLKw7J4zJ2fh6xw`)이 조회 → CSV 갱신 → 푸시
+
+### Routine 주의
+
+- **새 세션으로 띄우면 MCP 커넥터가 붙지 않는다** (`mcp_connections: []`).
+  Windsor 조회가 필요한 Routine 은 반드시 세션 바인딩(`persist_session: true`)으로 만들 것.
+- `create_trigger` 의 `connectors` 파라미터는 이 조직에서 사용 불가.
+- 서버가 5~8분 지터를 준다. `30 0 * * *` → 실제 09:35~09:38 KST 실행.
