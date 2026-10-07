@@ -48,19 +48,19 @@
     "review_link": 1
   },
   "63": {
-    "alt": 25,
+    "alt": 14,
     "faq_jsonld": 0,
     "faq_micro": 5,
-    "images": 25,
-    "korean": 4259,
+    "images": 16,
+    "korean": 3244,
     "review_link": 1
   },
   "64": {
-    "alt": 27,
+    "alt": 4,
     "faq_jsonld": 0,
     "faq_micro": 5,
-    "images": 27,
-    "korean": 4331,
+    "images": 10,
+    "korean": 2336,
     "review_link": 1
   },
   "71": {
@@ -72,11 +72,11 @@
     "review_link": 1
   },
   "98": {
-    "alt": 15,
+    "alt": 9,
     "faq_jsonld": 0,
     "faq_micro": 5,
     "images": 15,
-    "korean": 4145,
+    "korean": 3130,
     "review_link": 1
   }
 }
