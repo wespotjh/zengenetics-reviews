@@ -25,7 +25,7 @@
   },
   "60": {
     "alt": 14,
-    "faq_jsonld": 3,
+    "faq_jsonld": 0,
     "faq_micro": 3,
     "images": 14,
     "korean": 2432,
@@ -33,7 +33,7 @@
   },
   "61": {
     "alt": 16,
-    "faq_jsonld": 3,
+    "faq_jsonld": 0,
     "faq_micro": 3,
     "images": 16,
     "korean": 2584,
@@ -41,7 +41,7 @@
   },
   "62": {
     "alt": 15,
-    "faq_jsonld": 3,
+    "faq_jsonld": 0,
     "faq_micro": 3,
     "images": 15,
     "korean": 2676,
