@@ -3,7 +3,7 @@
     "alt": 14,
     "faq_jsonld": 0,
     "faq_micro": 5,
-    "images": 14,
+    "images": 15,
     "korean": 3069,
     "review_link": 1
   },
@@ -11,7 +11,7 @@
     "alt": 0,
     "faq_jsonld": 0,
     "faq_micro": 0,
-    "images": 4,
+    "images": 5,
     "korean": 1019,
     "review_link": 0
   },
@@ -19,7 +19,7 @@
     "alt": 16,
     "faq_jsonld": 0,
     "faq_micro": 5,
-    "images": 16,
+    "images": 17,
     "korean": 3328,
     "review_link": 1
   },
@@ -27,7 +27,7 @@
     "alt": 14,
     "faq_jsonld": 0,
     "faq_micro": 3,
-    "images": 14,
+    "images": 15,
     "korean": 2432,
     "review_link": 1
   },
@@ -35,7 +35,7 @@
     "alt": 16,
     "faq_jsonld": 0,
     "faq_micro": 3,
-    "images": 16,
+    "images": 17,
     "korean": 2584,
     "review_link": 1
   },
@@ -43,7 +43,7 @@
     "alt": 15,
     "faq_jsonld": 0,
     "faq_micro": 3,
-    "images": 15,
+    "images": 16,
     "korean": 2676,
     "review_link": 1
   },
@@ -51,7 +51,7 @@
     "alt": 14,
     "faq_jsonld": 0,
     "faq_micro": 5,
-    "images": 16,
+    "images": 17,
     "korean": 3244,
     "review_link": 1
   },
@@ -59,7 +59,7 @@
     "alt": 4,
     "faq_jsonld": 0,
     "faq_micro": 5,
-    "images": 10,
+    "images": 11,
     "korean": 2336,
     "review_link": 1
   },
@@ -67,7 +67,7 @@
     "alt": 19,
     "faq_jsonld": 0,
     "faq_micro": 5,
-    "images": 19,
+    "images": 20,
     "korean": 4463,
     "review_link": 1
   },
@@ -75,7 +75,7 @@
     "alt": 9,
     "faq_jsonld": 0,
     "faq_micro": 5,
-    "images": 15,
+    "images": 16,
     "korean": 3130,
     "review_link": 1
   }
