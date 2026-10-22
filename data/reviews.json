@@ -27872,5 +27872,49 @@
   "date": "2026-10-20",
   "date_estimated": true,
   "seq": 2534
+ },
+ {
+  "id": "104093545",
+  "product_no": 11,
+  "product_name": "젠제네틱스 포타슘 칼륨 (20ea)",
+  "ratings": 5,
+  "content": "잘 산 것 같아 기분이 좋아요 🙂🙂",
+  "option": "수량선택=[지금 22%▼] 젠제네틱스 붓기파우더 1 box",
+  "date": "2026-10-22",
+  "date_estimated": true,
+  "seq": 2535
+ },
+ {
+  "id": "104115039",
+  "product_no": 71,
+  "product_name": "[젠제네틱스] 칼륨/마그네슘/비타민B컴플렉스 생애 첫 구매 EVENT",
+  "ratings": 5,
+  "content": "만족스러워요 붓기에 최고에요 🙂 매우 빠른 효과",
+  "option": "수량선택=[생애 첫 1+1] 젠제네틱스 마그네슘 데이팩 2 box",
+  "date": "2026-10-22",
+  "date_estimated": true,
+  "seq": 2536
+ },
+ {
+  "id": "104093543",
+  "product_no": 71,
+  "product_name": "[젠제네틱스] 칼륨/마그네슘/비타민B컴플렉스 생애 첫 구매 EVENT",
+  "ratings": 5,
+  "content": "만족스러워요 붓기에 최고에요 👍 매우 빠른 효과",
+  "option": "수량선택=🔥BEST🔥[생애 첫 1+1] 젠제네틱스 붓기파우더 데이팩 2 box",
+  "date": "2026-10-22",
+  "date_estimated": true,
+  "seq": 2537
+ },
+ {
+  "id": "104093542",
+  "product_no": 71,
+  "product_name": "[젠제네틱스] 칼륨/마그네슘/비타민B컴플렉스 생애 첫 구매 EVENT",
+  "ratings": 5,
+  "content": "잘 산 것 같아 기분이 좋아요 🌈🌈",
+  "option": "수량선택=[생애 첫 1+1] 젠제네틱스 비컴플렉스 데이팩 2 box",
+  "date": "2026-10-22",
+  "date_estimated": true,
+  "seq": 2538
  }
 ]
