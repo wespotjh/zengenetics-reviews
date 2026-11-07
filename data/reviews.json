@@ -28279,5 +28279,27 @@
   "date": "2026-11-05",
   "date_estimated": false,
   "seq": 2571
+ },
+ {
+  "id": "106572972",
+  "product_no": 64,
+  "product_name": "[퍼포먼스 부스터] 젠제네틱스 마그네슘(1box) & 비타민B컴플렉스(1box) SET",
+  "ratings": 5,
+  "content": "잘 산 것 같아 기분이 좋아요 😃😃",
+  "option": "수량선택=퍼포먼스부스터 2+2 (35%할인 | 40일 | 무료배송)",
+  "date": "2026-11-07",
+  "date_estimated": true,
+  "seq": 2572
+ },
+ {
+  "id": "106401720",
+  "product_no": 64,
+  "product_name": "[퍼포먼스 부스터] 젠제네틱스 마그네슘(1box) & 비타민B컴플렉스(1box) SET",
+  "ratings": 5,
+  "content": "가볍고 덜피곤해요.잠도잘옴",
+  "option": "수량선택=🔥BEST🔥 [3+3] (45%할인 | 60일 | 무료배송)",
+  "date": "2026-11-07",
+  "date_estimated": true,
+  "seq": 2573
  }
 ]
